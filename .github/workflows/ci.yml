@@ -15,7 +15,6 @@ concurrency:
 
 env:
   CTEST_OUTPUT_ON_FAILURE: "1"
-  CLANG_FORMAT: clang-format-18
 
 # Actions are pinned by commit SHA (tag in the trailing comment); Dependabot keeps them fresh.
 jobs:
@@ -25,16 +24,22 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Sync pinned tools (uv.lock must be up to date with pyproject.toml)
+        run: uv sync --locked
       - name: Tool versions
         run: |
-          clang-format-18 --version
-          python3 --version
+          uv --version
+          uv run --frozen clang-format --version
       - name: clang-format check
-        run: python3 scripts/run_clang_format.py --check
+        run: uv run --frozen python scripts/run_clang_format.py --check
       - name: File-length policy
-        run: python3 scripts/check_file_length.py
+        run: uv run --frozen python scripts/check_file_length.py
       - name: Layering rules
-        run: python3 scripts/check_layering.py
+        run: uv run --frozen python scripts/check_layering.py
 
   # ------------------------------------------------------------------------------------------
   # Windows jobs go through scripts/dev.ps1 — exactly what a developer runs locally.
@@ -55,6 +60,10 @@ jobs:
         shell: pwsh
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
       - name: Toolchain check
         run: ./scripts/dev.ps1 doctor
       - name: Cache FetchContent sources
@@ -181,11 +190,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
       - run: sudo apt-get update && sudo apt-get install -y ninja-build
-      - run: pip install gcovr==8.6
+      - run: uv sync --frozen   # provides the pinned gcovr from uv.lock
       - name: Cache FetchContent sources
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
