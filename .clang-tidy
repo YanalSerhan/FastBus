@@ -1,0 +1,78 @@
+# fastbus clang-tidy configuration (clang-tidy 18).
+#
+# Families enabled: bugprone, cert, concurrency, cppcoreguidelines (curated), misc, modernize,
+# performance, readability. Everything is an error (WarningsAsErrors: '*').
+#
+# Disabled checks and why:
+#   modernize-use-trailing-return-type          style preference; we use leading return types.
+#   readability-identifier-length               short names (i, n, ns) are idiomatic in loops/math.
+#   readability-magic-numbers,
+#   cppcoreguidelines-avoid-magic-numbers       named constants are enforced by review + constants.hpp;
+#                                               the check fires on bit masks/shifts we want inline.
+#   cppcoreguidelines-pro-bounds-pointer-arithmetic
+#                                               ring buffers / shm offsets require pointer arithmetic;
+#                                               every such site is bounds-checked and commented.
+#   cppcoreguidelines-pro-type-reinterpret-cast placing objects in shared memory needs it; confined
+#                                               to transport/platform and reviewed.
+#   cppcoreguidelines-avoid-do-while            do/while is clearer for CAS retry loops.
+#   misc-include-cleaner                        too noisy with umbrella headers in clang-tidy 18.
+#   misc-non-private-member-variables-in-classes POD layout structs (shm/wire headers) are public by design.
+#   bugprone-easily-swappable-parameters        strong types (TopicId, NodeId, ...) address this instead.
+#   cert-err58-cpp                              fires on every GoogleTest/Benchmark registration.
+#   readability-function-cognitive-complexity   kept off until real code exists; revisit in M1.
+---
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-avoid-do-while,
+  -misc-include-cleaner,
+  -misc-non-private-member-variables-in-classes,
+  -bugprone-easily-swappable-parameters,
+  -cert-err58-cpp,
+  -readability-function-cognitive-complexity
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/(include|src|tests|benchmarks|tools|examples|modules)/.*'
+FormatStyle: file
+CheckOptions:
+  - { key: readability-identifier-naming.NamespaceCase,            value: lower_case }
+  - { key: readability-identifier-naming.ClassCase,                value: CamelCase }
+  - { key: readability-identifier-naming.StructCase,               value: CamelCase }
+  - { key: readability-identifier-naming.EnumCase,                 value: CamelCase }
+  - { key: readability-identifier-naming.EnumConstantCase,         value: CamelCase }
+  - { key: readability-identifier-naming.TypeAliasCase,            value: CamelCase }
+  - { key: readability-identifier-naming.TemplateParameterCase,    value: CamelCase }
+  - { key: readability-identifier-naming.ConceptCase,              value: CamelCase }
+  - { key: readability-identifier-naming.FunctionCase,             value: lower_case }
+  - { key: readability-identifier-naming.MethodCase,               value: lower_case }
+  - { key: readability-identifier-naming.VariableCase,             value: lower_case }
+  - { key: readability-identifier-naming.ParameterCase,            value: lower_case }
+  - { key: readability-identifier-naming.MemberCase,               value: lower_case }
+  - { key: readability-identifier-naming.PrivateMemberCase,        value: lower_case }
+  - { key: readability-identifier-naming.PrivateMemberSuffix,      value: _ }
+  - { key: readability-identifier-naming.ProtectedMemberCase,      value: lower_case }
+  - { key: readability-identifier-naming.ProtectedMemberSuffix,    value: _ }
+  - { key: readability-identifier-naming.ConstexprVariableCase,    value: CamelCase }
+  - { key: readability-identifier-naming.ConstexprVariablePrefix,  value: k }
+  - { key: readability-identifier-naming.GlobalConstantCase,       value: CamelCase }
+  - { key: readability-identifier-naming.GlobalConstantPrefix,     value: k }
+  - { key: readability-identifier-naming.StaticConstantCase,       value: CamelCase }
+  - { key: readability-identifier-naming.StaticConstantPrefix,     value: k }
+  - { key: readability-identifier-naming.MacroDefinitionCase,      value: UPPER_CASE }
+  - { key: readability-identifier-naming.MacroDefinitionPrefix,    value: FASTBUS_ }
+  - { key: readability-identifier-naming.MacroDefinitionIgnoredRegexp, value: '^(WIN32_LEAN_AND_MEAN|NOMINMAX)$' }
+  - { key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor, value: true }
+  - { key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic, value: true }
+...

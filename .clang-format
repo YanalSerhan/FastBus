@@ -1,0 +1,40 @@
+# fastbus formatting — base: Google (matches our naming: kConstants, members_ with trailing
+# underscore), with 4-space indent and 100 columns for readability of templated/atomic code.
+# Pinned to clang-format 18 (Ubuntu 24.04 default); see docs/known-issues.md (KI-002).
+---
+Language: Cpp
+BasedOnStyle: Google
+Standard: c++20
+ColumnLimit: 100
+IndentWidth: 4
+ContinuationIndentWidth: 4
+AccessModifierOffset: -4
+DerivePointerAlignment: false
+PointerAlignment: Left
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+BreakBeforeBraces: Attach
+InsertBraces: true
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+# Only foo.cpp's own foo.hpp is the "main" include; foo_test.cpp gets no main include.
+IncludeIsMainRegex: '$'
+IncludeCategories:
+  # 1) gtest / benchmark first in test & bench files
+  - Regex: '^<(gtest|gmock|benchmark)/'
+    Priority: 1
+  # 2) C/C++ standard library
+  - Regex: '^<[a-z_]+>$'
+    Priority: 2
+  # 3) other system / third-party headers
+  - Regex: '^<.*>$'
+    Priority: 3
+  # 4) fastbus headers
+  - Regex: '^"fastbus/'
+    Priority: 4
+  # 5) local headers
+  - Regex: '.*'
+    Priority: 5
+...

@@ -1,0 +1,9 @@
+# Benchmarks inherit the root config, minus checks that fight Google Benchmark macros.
+#   cppcoreguidelines-avoid-non-const-global-variables  BENCHMARK() registers via globals.
+#   cppcoreguidelines-owning-memory                     registration uses raw new internally.
+---
+InheritParentConfig: true
+Checks: >
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-owning-memory
+...

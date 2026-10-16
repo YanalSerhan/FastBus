@@ -1,0 +1,12 @@
+# Tests and canaries inherit the root config, minus checks that fight GoogleTest macros.
+#   cppcoreguidelines-avoid-non-const-global-variables  TEST() defines globals by design.
+#   cppcoreguidelines-owning-memory                     gtest's registration uses raw new.
+#   readability-function-size                           table-driven tests can be long.
+# Canaries (tests/canary) are not run through clang-tidy at all: they contain deliberate bugs.
+---
+InheritParentConfig: true
+Checks: >
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-owning-memory,
+  -readability-function-size
+...
