@@ -290,3 +290,6 @@ try {
     Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
+# Exit explicitly: otherwise the exit code of the last native command (e.g. `git config --get`
+# returning 1 for an unset key) leaks out, and CI's PowerShell wrapper reports a failure.
+exit 0
