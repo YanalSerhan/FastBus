@@ -37,32 +37,65 @@ jobs:
         run: python3 scripts/check_layering.py
 
   # ------------------------------------------------------------------------------------------
+  # Windows jobs go through scripts/dev.ps1 — exactly what a developer runs locally.
+  windows:
+    name: windows (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: msvc-debug,   cmd: all,  preset: windows-msvc,    config: Debug }
+          - { name: msvc-release, cmd: all,  preset: windows-msvc,    config: Release }
+          - { name: clang-cl,     cmd: all,  preset: windows-clangcl, config: Debug }
+          - { name: msvc-asan,    cmd: asan, preset: windows-asan,    config: Debug }
+          - { name: clang-tidy,   cmd: tidy, preset: windows-tidy,    config: Debug }
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Toolchain check
+        run: ./scripts/dev.ps1 doctor
+      - name: Cache FetchContent sources
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/${{ matrix.preset }}/_deps
+          key: deps-${{ matrix.preset }}-${{ hashFiles('cmake/Dependencies.cmake') }}
+      - name: Build and test
+        run: ./scripts/dev.ps1 ${{ matrix.cmd }} -Preset ${{ matrix.preset }} -Config ${{ matrix.config }}
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-logs-windows-${{ matrix.name }}
+          path: |
+            build/${{ matrix.preset }}/junit.xml
+            build/${{ matrix.preset }}/Testing/
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------------------------------
   build-test:
     name: build-test (${{ matrix.preset }})
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { os: windows-2022, preset: windows-msvc }
-          - { os: ubuntu-24.04, preset: linux-gcc }
-          - { os: ubuntu-24.04, preset: linux-clang }
-    runs-on: ${{ matrix.os }}
+        preset: [linux-gcc, linux-clang]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install Ninja (Linux)
-        if: runner.os == 'Linux'
+      - name: Install Ninja
         run: sudo apt-get update && sudo apt-get install -y ninja-build
       - name: Toolchain versions (verify, don't assume)
-        shell: bash
         run: |
           cmake --version
-          if [ "$RUNNER_OS" = "Linux" ]; then g++ --version; clang++ --version; ninja --version; fi
+          g++ --version
+          clang++ --version
+          ninja --version
       - uses: hendrikmuhs/ccache-action@f09c25b45002a07be2955cbe52e8cee55643f89d # v1.2.24
-        if: runner.os == 'Linux'
         with:
           key: ${{ matrix.preset }}
-      - name: Use ccache (Linux)
-        if: runner.os == 'Linux'
+      - name: Use ccache
         run: echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
       - name: Cache FetchContent sources
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -77,7 +110,7 @@ jobs:
         run: ctest --preset ${{ matrix.preset }} --output-junit junit.xml
       - name: Upload test logs
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-logs-${{ matrix.preset }}
           path: |
@@ -117,7 +150,7 @@ jobs:
         run: ctest --preset ${{ matrix.preset }} --output-junit junit.xml
       - name: Upload test logs
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-logs-${{ matrix.preset }}
           path: |
@@ -162,7 +195,7 @@ jobs:
       - run: cmake --build --preset linux-coverage --parallel
       - name: Tests + coverage report
         run: cmake --build --preset linux-coverage --target coverage
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-report
           path: build/linux-coverage/coverage/
@@ -184,11 +217,11 @@ jobs:
       - name: Run smoke benchmark
         # Google Benchmark >= 1.8 takes a unit suffix ("0.01s"); older versions a bare number.
         run: >
-          ./build/linux-bench/benchmarks/fastbus_bm_smoke
+          ./build/linux-bench/bin/fastbus_bm_smoke
           --benchmark_min_time=0.01s
           --benchmark_format=console
           --benchmark_out=bench-smoke.json --benchmark_out_format=json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bench-smoke
           path: bench-smoke.json
