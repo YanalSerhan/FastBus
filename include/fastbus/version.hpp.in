@@ -1,0 +1,36 @@
+// clang-format off
+/// @file version.hpp
+/// @brief Library version information (generated from version.hpp.in by CMake — do not edit).
+///
+/// The single source of truth is `project(fastbus VERSION ...)` in the root CMakeLists.txt.
+/// Thread-safety: all members are constexpr and immutable. Errors: none.
+#pragma once
+
+#include <cstdint>
+#include <string_view>
+
+namespace fastbus {
+
+/// Semantic version of the fastbus library (https://semver.org).
+struct VersionInfo {
+    std::uint32_t major;
+    std::uint32_t minor;
+    std::uint32_t patch;
+    std::string_view text;  ///< "MAJOR.MINOR.PATCH"
+
+    friend constexpr bool operator==(const VersionInfo&, const VersionInfo&) = default;
+};
+
+/// Version this header was generated for.
+inline constexpr VersionInfo kVersion{
+    @PROJECT_VERSION_MAJOR@U,
+    @PROJECT_VERSION_MINOR@U,
+    @PROJECT_VERSION_PATCH@U,
+    "@PROJECT_VERSION@",
+};
+
+/// Returns the compile-time library version. Usable in constant expressions.
+[[nodiscard]] constexpr VersionInfo version() noexcept { return kVersion; }
+
+}  // namespace fastbus
+// clang-format on
