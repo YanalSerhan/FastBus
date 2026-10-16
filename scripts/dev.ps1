@@ -67,6 +67,7 @@ $OnWindows = ($PSVersionTable.PSEdition -eq 'Desktop') -or $IsWindows
 $NinjaPresets = @('windows-clangcl', 'windows-tidy')
 # Visual Studio presets that have a separate "-release" build/test preset.
 $MultiConfigWithRelease = @('windows-msvc')
+$script:LlvmReported = $false
 
 function Write-Step([string]$Text) {
     Write-Host ""
@@ -151,15 +152,17 @@ function Initialize-Environment([string]$P) {
     # Visual-Studio-only install keeps inside the developer environment as well.
     $needsCMake = -not (Get-Command ctest -ErrorAction SilentlyContinue)
     if ($NinjaPresets -contains $P -or $needsCMake) { Enter-VsDevEnvironment }
-    if ($NinjaPresets -contains $P) {
+    if ($NinjaPresets -contains $P -and -not $script:LlvmReported) {
         Use-VsBundledLlvm
         foreach ($tool in @('clang-cl', 'clang-tidy')) {
             $cmd = Get-Command $tool -ErrorAction SilentlyContinue
             if ($cmd) {
-                $ver = (& $cmd.Source --version | Select-Object -First 1)
+                $ver = (& $cmd.Source --version | Select-String 'version' |
+                        Select-Object -First 1)
                 Write-Host "    using $tool $($cmd.Source)  ($ver)" -ForegroundColor DarkGray
             }
         }
+        $script:LlvmReported = $true
     }
 }
 

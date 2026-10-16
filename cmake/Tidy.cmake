@@ -6,11 +6,15 @@
 # generator ignores CXX_CLANG_TIDY — use the `windows-tidy` preset on Windows.
 
 if(FASTBUS_ENABLE_TIDY)
-    # Windows: the LLVM installer (C:/Program Files/LLVM) or Visual Studio's "C++ Clang tools"
-    # component (VC/Tools/Llvm/x64/bin, on PATH inside a Developer PowerShell).
-    find_program(FASTBUS_CLANG_TIDY
-        NAMES clang-tidy clang-tidy-18 clang-tidy-19 clang-tidy-20
-        HINTS "$ENV{ProgramFiles}/LLVM/bin" "$ENV{VCINSTALLDIR}Tools/Llvm/x64/bin")
+    # PATH first: scripts/dev.ps1 puts Visual Studio's bundled LLVM there so clang-tidy matches
+    # clang-cl. (find_program checks HINTS *before* PATH, so the install locations below are a
+    # separate fallback search, not hints.)
+    set(_tidy_names clang-tidy clang-tidy-18 clang-tidy-19 clang-tidy-20)
+    find_program(FASTBUS_CLANG_TIDY NAMES ${_tidy_names})
+    if(NOT FASTBUS_CLANG_TIDY)
+        find_program(FASTBUS_CLANG_TIDY NAMES ${_tidy_names}
+            PATHS "$ENV{VCINSTALLDIR}Tools/Llvm/x64/bin" "$ENV{ProgramFiles}/LLVM/bin")
+    endif()
     if(NOT FASTBUS_CLANG_TIDY)
         message(FATAL_ERROR "FASTBUS_ENABLE_TIDY is ON but clang-tidy was not found")
     endif()
