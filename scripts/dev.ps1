@@ -126,11 +126,41 @@ function Get-BuildPresetName([string]$ConfigurePreset) {
     return $ConfigurePreset
 }
 
+function Use-VsBundledLlvm {
+    # clang-cl must match the MSVC standard library it compiles against: the STL rejects older
+    # clang versions with "#error STL1000: Unexpected compiler version". A standalone LLVM
+    # install on PATH (common on CI images and dev machines) can be older or newer than what
+    # Visual Studio supports, so put VS's own bundled LLVM (clang-cl + clang-tidy) first.
+    if (-not $OnWindows) { return }
+    $vs = Get-VsInstallPath
+    if (-not $vs) { return }
+    $llvm = Join-Path $vs 'VC\Tools\Llvm\x64\bin'
+    if (-not (Test-Path (Join-Path $llvm 'clang-cl.exe'))) {
+        Write-Host ("warning: Visual Studio's clang-cl not found; install the 'C++ Clang " +
+                    "Compiler for Windows' component. Falling back to clang-cl on PATH.") `
+            -ForegroundColor Yellow
+        return
+    }
+    if ((($env:PATH -split ';') | Select-Object -First 1) -ne $llvm) {
+        $env:PATH = "$llvm;$env:PATH"
+    }
+}
+
 function Initialize-Environment([string]$P) {
     # Ninja presets need the compilers on PATH; VS presets only need cmake/ctest, which a
     # Visual-Studio-only install keeps inside the developer environment as well.
     $needsCMake = -not (Get-Command ctest -ErrorAction SilentlyContinue)
     if ($NinjaPresets -contains $P -or $needsCMake) { Enter-VsDevEnvironment }
+    if ($NinjaPresets -contains $P) {
+        Use-VsBundledLlvm
+        foreach ($tool in @('clang-cl', 'clang-tidy')) {
+            $cmd = Get-Command $tool -ErrorAction SilentlyContinue
+            if ($cmd) {
+                $ver = (& $cmd.Source --version | Select-Object -First 1)
+                Write-Host "    using $tool $($cmd.Source)  ($ver)" -ForegroundColor DarkGray
+            }
+        }
+    }
 }
 
 function Invoke-Configure([string]$P) {
@@ -222,7 +252,8 @@ function Invoke-Doctor {
 
     Write-Step 'Optional (needed for windows-clangcl / windows-tidy)'
     if ($vs -or -not $OnWindows) {
-        $null = Test-Tool 'clang-cl' "VS Installer -> Modify -> 'C++ Clang tools for Windows'"
+        Use-VsBundledLlvm
+        $null = Test-Tool 'clang-cl' "VS Installer -> Modify -> 'C++ Clang Compiler for Windows'"
         $null = Test-Tool 'ninja' 'ships with VS (CMake tools component)'
         $null = Test-Tool 'clang-tidy' "VS 'C++ Clang tools' or: winget install LLVM.LLVM"
     }
