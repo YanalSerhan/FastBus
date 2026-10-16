@@ -1,0 +1,23 @@
+# Optional: `pip install pre-commit && pre-commit install`
+# Uses the repository's own scripts so pre-commit, CMake and CI agree exactly.
+repos:
+  - repo: local
+    hooks:
+      - id: clang-format
+        name: clang-format (check)
+        entry: python scripts/run_clang_format.py --check
+        language: system
+        pass_filenames: false
+        types_or: [c++, c]
+      - id: file-length
+        name: file-length policy
+        entry: python scripts/check_file_length.py
+        language: system
+        pass_filenames: false
+        types_or: [c++, c]
+      - id: layering
+        name: layering rules
+        entry: python scripts/check_layering.py
+        language: system
+        pass_filenames: false
+        types_or: [c++, c]
