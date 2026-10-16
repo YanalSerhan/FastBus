@@ -15,6 +15,7 @@ CMakeLists.txt text eol=lf
 *.py      text eol=lf
 *.fbidl   text eol=lf
 *.txt     text eol=lf
+*.example text eol=lf
 .clang-format text eol=lf
 .clang-tidy   text eol=lf
 tests/golden/**  text eol=lf
