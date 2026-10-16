@@ -1,0 +1,29 @@
+# Python tooling for fastbus, managed with uv (https://docs.astral.sh/uv/).
+#
+# This is NOT a Python package: it only pins the developer tools the repo scripts use, so every
+# machine and CI job runs exactly the same versions. The C++ build itself uses CMake/FetchContent.
+#
+#   uv sync                                  # create .venv with the pinned tools (done
+#                                            # automatically by `uv run`)
+#   uv run python scripts/check_layering.py  # run a repo script inside that environment
+#   uv lock --upgrade-package gcovr          # bump one tool, then commit uv.lock
+#
+# Plotting / analysis dependencies (matplotlib, numpy, ...) join in M7/M9 as their own group.
+
+[project]
+name = "fastbus-tools"
+version = "0.1.0"
+description = "Developer tooling for the fastbus C++ project (formatting, coverage, lint scripts)"
+requires-python = ">=3.10"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "clang-format==18.1.8",  # must match the version CI formats with (docs/known-issues.md KI-002)
+    "gcovr==8.6",            # coverage report (linux-coverage preset)
+    "pre-commit>=4",         # optional git hooks (.pre-commit-config.yaml)
+]
+
+[tool.uv]
+package = false              # tooling only; never build/install this directory as a package
+default-groups = ["dev"]
