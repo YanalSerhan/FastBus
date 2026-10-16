@@ -77,7 +77,7 @@ jobs:
         run: ctest --preset ${{ matrix.preset }} --output-junit junit.xml
       - name: Upload test logs
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-logs-${{ matrix.preset }}
           path: |
@@ -117,7 +117,7 @@ jobs:
         run: ctest --preset ${{ matrix.preset }} --output-junit junit.xml
       - name: Upload test logs
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-logs-${{ matrix.preset }}
           path: |
@@ -162,7 +162,7 @@ jobs:
       - run: cmake --build --preset linux-coverage --parallel
       - name: Tests + coverage report
         run: cmake --build --preset linux-coverage --target coverage
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-report
           path: build/linux-coverage/coverage/
@@ -188,7 +188,7 @@ jobs:
           --benchmark_min_time=0.01s
           --benchmark_format=console
           --benchmark_out=bench-smoke.json --benchmark_out_format=json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bench-smoke
           path: bench-smoke.json
