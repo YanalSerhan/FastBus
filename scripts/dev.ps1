@@ -106,19 +106,17 @@ function Enter-VsDevEnvironment {
     Set-Location $RepoRoot
 }
 
-function Get-Python {
-    # Prefer the 'py' launcher: the bare 'python' on a fresh Windows can be the Store stub.
-    if (Get-Command py -ErrorAction SilentlyContinue) { return @('py', '-3') }
-    if (Get-Command python -ErrorAction SilentlyContinue) { return @('python') }
-    throw "Python 3 not found. Install it with: winget install Python.Python.3.12"
+function Assert-Uv {
+    if (Get-Command uv -ErrorAction SilentlyContinue) { return }
+    throw ("uv not found. Install it with: winget install astral-sh.uv " +
+           "(then open a new terminal). See https://docs.astral.sh/uv/")
 }
 
 function Invoke-Python([string[]]$Arguments) {
-    $py = @(Get-Python)
-    $exe = $py[0]
-    $rest = @()
-    if ($py.Count -gt 1) { $rest = $py[1..($py.Count - 1)] }
-    Invoke-Native $exe ($rest + $Arguments)
+    # All Python tooling runs through uv: it creates .venv from uv.lock on first use and puts
+    # the pinned tools (clang-format 18, gcovr, pre-commit) on PATH for the script.
+    Assert-Uv
+    Invoke-Native 'uv' (@('run', '--frozen', 'python') + $Arguments)
 }
 
 function Get-BuildPresetName([string]$ConfigurePreset) {
@@ -166,8 +164,7 @@ function Invoke-All([string]$P) {
 }
 
 function Invoke-Lint {
-    Write-Step 'clang-format check'
-    Enter-VsDevEnvironment  # puts VS's clang-format on PATH if the LLVM installer isn't used
+    Write-Step 'clang-format check (pinned clang-format 18 via uv)'
     Invoke-Python @('scripts/run_clang_format.py', '--check')
     Write-Step 'File-length policy'
     Invoke-Python @('scripts/check_file_length.py')
@@ -213,16 +210,21 @@ function Invoke-Doctor {
             $problems++
         }
     } else { $problems++ }
-    try { $null = Get-Python; Write-Host "  [ok]      python" -ForegroundColor Green }
-    catch { Write-Host "  [missing] python         winget install Python.Python.3.12" `
-            -ForegroundColor Yellow; $problems++ }
+    if (Test-Tool 'uv' 'winget install astral-sh.uv   (manages Python + the pinned tools)') {
+        & uv sync --frozen --quiet
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  [ok]      tool env       .venv synced from uv.lock" -ForegroundColor Green
+        } else {
+            Write-Host "  [error]   uv sync failed (see message above)" -ForegroundColor Red
+            $problems++
+        }
+    } else { $problems++ }
 
-    Write-Step 'Optional (needed for windows-clangcl / windows-tidy / format)'
+    Write-Step 'Optional (needed for windows-clangcl / windows-tidy)'
     if ($vs -or -not $OnWindows) {
         $null = Test-Tool 'clang-cl' "VS Installer -> Modify -> 'C++ Clang tools for Windows'"
         $null = Test-Tool 'ninja' 'ships with VS (CMake tools component)'
         $null = Test-Tool 'clang-tidy' "VS 'C++ Clang tools' or: winget install LLVM.LLVM"
-        $null = Test-Tool 'clang-format' "VS 'C++ Clang tools' or: winget install LLVM.LLVM"
     }
 
     Write-Step 'Checkout'
@@ -262,7 +264,6 @@ try {
         'asan'      { Invoke-All 'windows-asan' }
         'tidy'      { Invoke-Build 'windows-tidy' }
         'format'    {
-            Enter-VsDevEnvironment
             Invoke-Python @('scripts/run_clang_format.py', '--fix')
         }
         'lint'      { Invoke-Lint }

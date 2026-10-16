@@ -8,9 +8,13 @@ Usage:
 Used by the CMake `format` / `format-check` targets, CI, pre-commit and scripts/dev.ps1, so
 the file list lives in exactly one place.
 
-clang-format lookup order: $CLANG_FORMAT, then PATH, then the usual Windows install locations
-(LLVM installer, Visual Studio's "C++ Clang tools" component). CI uses clang-format 18; other
-major versions can format slightly differently, so a version mismatch prints a warning.
+Run it through uv so the pinned clang-format 18 from uv.lock is used:
+    uv run python scripts/run_clang_format.py --check
+
+clang-format lookup: $CLANG_FORMAT, PATH (which `uv run` puts .venv first on), the environment's
+own Scripts/bin folder, then on Windows the LLVM installer and Visual Studio's "C++ Clang
+tools". Version 18 (what CI uses) is preferred; any other major version formats slightly
+differently, so using one prints a warning.
 """
 
 from __future__ import annotations
@@ -32,48 +36,62 @@ REFERENCE_MAJOR = 18
 BATCH_SIZE = 50  # keeps the command line far below Windows' 32 767-character limit
 
 
-def _windows_candidates() -> list[str]:
-    patterns = [
-        os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "LLVM", "bin",
-                     "clang-format.exe"),
-        r"C:\Program Files\Microsoft Visual Studio\2022\*\VC\Tools\Llvm\x64\bin\clang-format.exe",
-        r"C:\Program Files (x86)\Microsoft Visual Studio\2022\*\VC\Tools\Llvm\x64\bin"
-        r"\clang-format.exe",
-    ]
+def _major_version(exe: str) -> int | None:
+    try:
+        out = subprocess.run([exe, "--version"], capture_output=True, text=True,
+                             check=False).stdout
+    except OSError:
+        return None
+    match = re.search(r"version (\d+)\.", out)
+    return int(match.group(1)) if match else None
+
+
+def _candidates() -> list[str]:
+    """Every clang-format we can find, in priority order, without duplicates."""
     found: list[str] = []
-    for pattern in patterns:
-        found.extend(sorted(glob.glob(pattern)))
-    return found
+    env = os.environ.get("CLANG_FORMAT")
+    if env:
+        found.append(shutil.which(env) or env)
+    for name in (f"clang-format-{REFERENCE_MAJOR}", "clang-format"):
+        path = shutil.which(name)
+        if path:
+            found.append(path)
+    # The interpreter's own folder: .venv/Scripts (Windows) or .venv/bin when run via uv.
+    py_dir = Path(sys.executable).parent
+    found += [str(py_dir / "clang-format.exe"), str(py_dir / "clang-format")]
+    if os.name == "nt":
+        found.append(os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "LLVM",
+                                  "bin", "clang-format.exe"))
+        for pattern in (r"C:\Program Files\Microsoft Visual Studio\2022\*\VC\Tools\Llvm\x64"
+                        r"\bin\clang-format.exe",
+                        r"C:\Program Files (x86)\Microsoft Visual Studio\2022\*\VC\Tools\Llvm"
+                        r"\x64\bin\clang-format.exe"):
+            found += sorted(glob.glob(pattern))
+    unique: list[str] = []
+    for path in found:
+        if os.path.isfile(path) and path not in unique:
+            unique.append(path)
+    return unique
 
 
 def find_clang_format() -> str:
-    """Return a clang-format executable path."""
-    names = [os.environ.get("CLANG_FORMAT"), "clang-format", f"clang-format-{REFERENCE_MAJOR}"]
-    for name in names:
-        if name:
-            path = shutil.which(name)
-            if path:
-                return path
-    if os.name == "nt":
-        candidates = _windows_candidates()
-        if candidates:
-            return candidates[0]
-    sys.exit(
-        "error: clang-format not found.\n"
-        "  Windows: `winget install LLVM.LLVM` or add the 'C++ Clang tools for Windows' "
-        "component in the Visual Studio Installer.\n"
-        "  Or set CLANG_FORMAT to the executable's full path."
-    )
-
-
-def warn_on_version_mismatch(clang_format: str) -> None:
-    out = subprocess.run([clang_format, "--version"], capture_output=True, text=True,
-                         check=False).stdout
-    match = re.search(r"version (\d+)\.", out)
-    if match and int(match.group(1)) != REFERENCE_MAJOR:
-        print(f"warning: {clang_format} is version {match.group(1)}, CI uses "
-              f"{REFERENCE_MAJOR}; results may differ slightly (docs/known-issues.md KI-002)",
-              file=sys.stderr)
+    """Prefer clang-format REFERENCE_MAJOR (what CI uses); fall back to any other version."""
+    candidates = _candidates()
+    if not candidates:
+        sys.exit(
+            "error: clang-format not found.\n"
+            "  Run the script through uv, which provides the pinned version:\n"
+            "    uv run python scripts/run_clang_format.py --check\n"
+            "  Or set CLANG_FORMAT to the executable's full path."
+        )
+    for path in candidates:
+        if _major_version(path) == REFERENCE_MAJOR:
+            return path
+    chosen = candidates[0]
+    print(f"warning: no clang-format {REFERENCE_MAJOR} found, using {chosen} (version "
+          f"{_major_version(chosen)}); results may differ from CI (docs/known-issues.md KI-002).\n"
+          "         Fix: run through uv: uv run python scripts/run_clang_format.py", file=sys.stderr)
+    return chosen
 
 
 def collect_sources() -> list[Path]:
@@ -98,7 +116,6 @@ def main() -> int:
     args = parser.parse_args()
 
     clang_format = find_clang_format()
-    warn_on_version_mismatch(clang_format)
     files = collect_sources()
     if not files:
         print("no sources found")
@@ -111,7 +128,7 @@ def main() -> int:
         status |= subprocess.run([clang_format, *flags, *batch], check=False).returncode
     if args.check and status != 0:
         print("\nformat-check failed: run `.\\scripts\\dev.ps1 format` (Windows) or "
-              "`python scripts/run_clang_format.py --fix`", file=sys.stderr)
+              "`uv run python scripts/run_clang_format.py --fix`", file=sys.stderr)
     elif status == 0:
         print(f"{'checked' if args.check else 'formatted'} {len(files)} files")
     return 1 if status else 0
