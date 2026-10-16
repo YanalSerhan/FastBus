@@ -850,7 +850,7 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 | No hardcoded values; config files; `.env-example` | JSON configs + `constants.hpp`; no secrets expected (CI secrets via GitHub Secrets) | adopt / `.env-example` N/A |
 | Version everything, config versioned | §3.3 versions inventory; version validated on load | adopt |
 | Git practices, tags, PR review, prompt log | Conventional commits, PRs, tags; optional `docs/prompt-log.md` | adopt |
-| `uv` package manager | Python tooling only (plots/analysis); C++ uses CMake/FetchContent | adapt |
+| `uv` package manager | All Python tooling (lint/format scripts, clang-format 18, gcovr, pre-commit; plots/analysis later) via `pyproject.toml` + `uv.lock`; C++ uses CMake/FetchContent | adopt (done 2026-10-16) |
 | TDD red-green-refactor; coverage ≥ 85 %; edge cases; automated reports | Tests-first commits; coverage gate; JUnit XML in CI | adopt |
 | Ruff zero violations | clang-format + clang-tidy zero violations + `-Werror` | adapt |
 | Research: parameter sensitivity, analysis notebook, visualization | EKF OAT sweeps (M7.8), benchmark analysis (M9.5), LaTeX math in PRD | adopt |

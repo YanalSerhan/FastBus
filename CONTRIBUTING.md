@@ -2,7 +2,9 @@
 
 ## Windows quick start (primary platform)
 
-You need **Visual Studio 2022** with the *Desktop development with C++* workload, **Git** and **Python 3**. Optional but recommended: the *C++ Clang tools for Windows* component (VS Installer → Modify → Individual components), which provides clang-cl, clang-format and clang-tidy.
+You need **Visual Studio 2022** with the *Desktop development with C++* workload, **Git** and **[uv](https://docs.astral.sh/uv/)** (`winget install astral-sh.uv`). Optional but recommended: the *C++ Clang Compiler for Windows* component (VS Installer → Modify → Individual components), which provides clang-cl and clang-tidy.
+
+You do **not** need to install Python or any Python package yourself: uv downloads a matching Python and the pinned tools from `uv.lock` into `.venv` the first time a script runs.
 
 Everything goes through one script, run from a normal PowerShell in the repo root. It enters the Visual Studio developer environment by itself when needed:
 
@@ -39,7 +41,7 @@ All builds go through CMake presets; each preset builds into `build/<preset>/`, 
 | Windows | `windows-tidy` | clang-cl + clang-tidy on every TU during the build. |
 | Linux | `linux-gcc`, `linux-clang` | Ninja, Debug. |
 | Linux | `linux-asan`, `linux-ubsan`, `linux-tsan` | Clang + sanitizer; includes the canary for that sanitizer. |
-| Linux | `linux-coverage` | GCC + `--coverage`; `cmake --build --preset linux-coverage --target coverage` (needs `gcovr`). |
+| Linux | `linux-coverage` | GCC + `--coverage`; `cmake --build --preset linux-coverage --target coverage` (gcovr via uv). |
 | Linux | `linux-tidy` | Clang with clang-tidy run on every TU during the build. |
 | Linux | `linux-bench` | GCC Release with frame pointers, for benchmarks/profiling. |
 
@@ -59,20 +61,35 @@ wsl --install -d Ubuntu-24.04          # once
 ```bash
 # inside WSL — clone into the Linux filesystem (~/src), not /mnt/c, for speed and correct permissions
 sudo apt update && sudo apt install -y build-essential clang clang-tidy-18 clang-format-18 \
-     libclang-rt-18-dev cmake ninja-build python3 python3-pip git
+     libclang-rt-18-dev cmake ninja-build git
+curl -LsSf https://astral.sh/uv/install.sh | sh     # uv
 git clone https://github.com/YanalSerhan/FastBus.git ~/src/FastBus && cd ~/src/FastBus
 cmake --preset linux-clang && cmake --build --preset linux-clang && ctest --preset linux-clang
 ```
 
 **TSan on WSL2 / recent kernels:** if TSan aborts with `unexpected memory mapping`, run `sudo sysctl vm.mmap_rnd_bits=28` (resets on reboot).
 
+## Python tooling (uv)
+
+All Python in this repo runs through **uv**; never `pip install` anything. `pyproject.toml` lists the tools, `uv.lock` pins their exact versions for every OS, and `.python-version` pins the interpreter.
+
+| Task | Command |
+|---|---|
+| Create / refresh `.venv` | `uv sync` (also happens automatically on `uv run`) |
+| Run a repo script | `uv run python scripts/check_layering.py` |
+| Run a pinned tool | `uv run clang-format --version`, `uv run gcovr --version` |
+| Add a tool | `uv add --dev <package>` → commit `pyproject.toml` + `uv.lock` |
+| Upgrade one tool | `uv lock --upgrade-package gcovr` → commit `uv.lock` |
+
+CI runs `uv sync --locked`, which fails if `uv.lock` is out of date with `pyproject.toml`, so always commit both together. CMake's `format`, `format-check` and `coverage` targets call uv too.
+
 ## Formatting and lint
 
-- `.\scripts\dev.ps1 format` (Windows) or `python scripts/run_clang_format.py --fix` formats everything; `--check` verifies. clang-format **18** is the reference version (CI); the script warns if yours differs. On Windows it also finds the clang-format shipped with Visual Studio or the LLVM installer.
+- `.\scripts\dev.ps1 format` (Windows) or `uv run python scripts/run_clang_format.py --fix` formats everything; `--check` verifies. clang-format **18.1.8** comes from `uv.lock`, so local and CI formatting are identical.
 - clang-tidy: `.\scripts\dev.ps1 tidy` (Windows), the `linux-tidy` preset, or clangd with `--clang-tidy` in your editor.
-- `python scripts/check_file_length.py` — code lines per file in `include/` and `src/`: warning > 150, error > 300.
-- `python scripts/check_layering.py` — modules may only include lower layers (see `docs/PLAN.md`).
-- Optional: `pre-commit install` runs the same scripts on commit.
+- `uv run python scripts/check_file_length.py` — code lines per file in `include/` and `src/`: warning > 150, error > 300.
+- `uv run python scripts/check_layering.py` — modules may only include lower layers (see `docs/PLAN.md`).
+- Optional: `uv run pre-commit install` runs the same scripts on every commit.
 
 ## Naming (enforced by clang-tidy)
 

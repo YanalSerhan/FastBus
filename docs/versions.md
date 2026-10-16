@@ -31,9 +31,11 @@ Every versioned artifact has a version field that is validated on load.
 | CMake | 3.28.3 (minimum supported 3.24) |
 | GCC | 13.3.0 |
 | Clang / clang-tidy / clang-format | 18.1.3 |
-| gcovr | 8.6 |
+| gcovr | 8.6 (pinned in `uv.lock`) |
+| clang-format | 18.1.8 (pinned in `uv.lock`, PyPI wheel — same binary on Windows and Linux) |
+| uv | 0.11.x (`pyproject.toml` / `uv.lock`; Python 3.13 via `.python-version`) |
 | MSVC | VS 2022 (to be recorded from the first Windows CI run) |
 
 ## CI actions (pinned by SHA in `.github/workflows/ci.yml`)
 
-actions/checkout v7.0.1, actions/cache v6.1.0, actions/upload-artifact v7.0.1, actions/setup-python v7.0.0, hendrikmuhs/ccache-action v1.2.24, lycheeverse/lychee-action v2.9.0.
+actions/checkout v7.0.1, actions/cache v6.1.0, actions/upload-artifact v7.0.2, astral-sh/setup-uv v10.2.0, hendrikmuhs/ccache-action v1.2.24, lycheeverse/lychee-action v2.9.0.

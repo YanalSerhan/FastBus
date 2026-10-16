@@ -34,7 +34,7 @@ _Placeholder — filled in M10._ Module layering and C4 diagrams: [`docs/PLAN.md
 
 ## Quickstart
 
-**Windows** (primary development platform) — needs Visual Studio 2022 with *Desktop development with C++*, Git and Python 3. From a normal PowerShell in the repo root:
+**Windows** (primary development platform) — needs Visual Studio 2022 with *Desktop development with C++*, Git and [uv](https://docs.astral.sh/uv/) (`winget install astral-sh.uv`). From a normal PowerShell in the repo root:
 
 ```powershell
 .\scripts\dev.ps1 doctor     # checks your tools and tells you what's missing
@@ -42,7 +42,7 @@ _Placeholder — filled in M10._ Module layering and C4 diagrams: [`docs/PLAN.md
 .\scripts\dev.ps1 check      # everything CI checks on Windows — run before pushing
 ```
 
-**Linux** — CMake ≥ 3.24, GCC ≥ 12 or Clang ≥ 16, Ninja, Python 3:
+**Linux** — CMake ≥ 3.24, GCC ≥ 12 or Clang ≥ 16, Ninja, uv:
 
 ```bash
 cmake --preset linux-gcc && cmake --build --preset linux-gcc && ctest --preset linux-gcc
@@ -71,7 +71,8 @@ examples/                   runnable examples
 idl/                        shared .fbidl message definitions
 config/                     versioned JSON: QoS profiles, fault scenarios, sim/bench params
 cmake/                      Warnings, Sanitizers, Platform, Dependencies, Coverage, Tidy, ...
-scripts/                    lint/format scripts (Python); analysis scripts later (uv)
+scripts/                    dev.ps1 + lint/format scripts (Python, run via uv)
+pyproject.toml, uv.lock     pinned Python tooling (clang-format 18, gcovr, pre-commit)
 docs/                       PRD, PLAN, TODO, ADRs, per-mechanism PRDs, formats, bugs
 ```
 

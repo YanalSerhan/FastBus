@@ -9,6 +9,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 - Windows-first workflow: `scripts/dev.ps1` (doctor, build, test, asan, tidy, format, lint, bench, check) that enters the VS developer environment automatically.
 - `windows-tidy` preset; CI Windows jobs for MSVC Debug/Release, clang-cl, MSVC ASan and clang-tidy, all via `dev.ps1`.
 
+- Python tooling managed by uv: `pyproject.toml`, `uv.lock` and `.python-version` pin clang-format 18.1.8, gcovr 8.6 and pre-commit. Scripts, CMake targets, pre-commit, `dev.ps1` and CI all run through `uv run`.
+
 ### Fixed
 - `windows-clangcl` preset: clang-cl rejected `/external:anglebrackets` under `/WX`; clang-cl now has its own warning flags.
 - MSVC ASan tests failing with "DLL not found" outside a Developer Prompt: the ASan runtime is copied next to every executable.
