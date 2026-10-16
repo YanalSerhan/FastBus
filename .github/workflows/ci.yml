@@ -28,6 +28,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
+          cache-suffix: ${{ github.job }}-${{ strategy.job-index }}   # one key per job, no save races
       - name: Sync pinned tools (uv.lock must be up to date with pyproject.toml)
         run: uv sync --locked
       - name: Tool versions
@@ -64,6 +65,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
+          cache-suffix: ${{ github.job }}-${{ strategy.job-index }}   # one key per job, no save races
       - name: Toolchain check
         run: ./scripts/dev.ps1 doctor
       - name: Cache FetchContent sources
@@ -194,6 +196,7 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
+          cache-suffix: ${{ github.job }}-${{ strategy.job-index }}   # one key per job, no save races
       - run: sudo apt-get update && sudo apt-get install -y ninja-build
       - run: uv sync --frozen   # provides the pinned gcovr from uv.lock
       - name: Cache FetchContent sources
