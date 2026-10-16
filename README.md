@@ -34,23 +34,21 @@ _Placeholder — filled in M10._ Module layering and C4 diagrams: [`docs/PLAN.md
 
 ## Quickstart
 
-Requirements: CMake ≥ 3.24, a C++20 compiler (MSVC 2022 / GCC ≥ 12 / Clang ≥ 16), Ninja (Linux), Python 3 (lint scripts), Git.
-
-```bash
-# Linux
-cmake --preset linux-gcc
-cmake --build --preset linux-gcc
-ctest --preset linux-gcc
-```
+**Windows** (primary development platform) — needs Visual Studio 2022 with *Desktop development with C++*, Git and Python 3. From a normal PowerShell in the repo root:
 
 ```powershell
-# Windows (Developer PowerShell or any shell with CMake on PATH)
-cmake --preset windows-msvc
-cmake --build --preset windows-msvc
-ctest --preset windows-msvc
+.\scripts\dev.ps1 doctor     # checks your tools and tells you what's missing
+.\scripts\dev.ps1            # configure + build + test (MSVC, Debug)
+.\scripts\dev.ps1 check      # everything CI checks on Windows — run before pushing
 ```
 
-`cmake --list-presets` shows every preset available on your OS. More in [CONTRIBUTING.md](CONTRIBUTING.md).
+**Linux** — CMake ≥ 3.24, GCC ≥ 12 or Clang ≥ 16, Ninja, Python 3:
+
+```bash
+cmake --preset linux-gcc && cmake --build --preset linux-gcc && ctest --preset linux-gcc
+```
+
+Linux-only checks (GCC, ThreadSanitizer, UBSan, coverage) run automatically in CI on every push, so Windows-only contributors are fully covered. More in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Benchmarks
 

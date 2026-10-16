@@ -1,14 +1,42 @@
 # Contributing to fastbus
 
-## Build
+## Windows quick start (primary platform)
 
-All builds go through CMake presets; each preset builds into `build/<preset>/`. In-source builds are refused.
+You need **Visual Studio 2022** with the *Desktop development with C++* workload, **Git** and **Python 3**. Optional but recommended: the *C++ Clang tools for Windows* component (VS Installer → Modify → Individual components), which provides clang-cl, clang-format and clang-tidy.
+
+Everything goes through one script, run from a normal PowerShell in the repo root. It enters the Visual Studio developer environment by itself when needed:
+
+| Command | What it does |
+|---|---|
+| `.\scripts\dev.ps1 doctor` | Checks tools, CMake version, repo location; tells you how to fix what's missing |
+| `.\scripts\dev.ps1` | Configure + build + test with MSVC (Debug) |
+| `.\scripts\dev.ps1 all -Config Release` | Same, Release |
+| `.\scripts\dev.ps1 all -Preset windows-clangcl` | Same with clang-cl (stricter warnings, catches non-portable code) |
+| `.\scripts\dev.ps1 asan` | MSVC AddressSanitizer build + tests + ASan canary |
+| `.\scripts\dev.ps1 tidy` | Build with clang-tidy on every file |
+| `.\scripts\dev.ps1 format` / `lint` | Format sources / run the same lint checks as CI |
+| `.\scripts\dev.ps1 bench` | Release build + benchmarks |
+| `.\scripts\dev.ps1 check` | Everything CI runs on Windows: lint, Debug + Release, ASan, tidy |
+| `.\scripts\dev.ps1 clean -Preset <p>` | Delete `build\<p>` |
+
+If PowerShell refuses to run scripts, allow local scripts once: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
+**Keep the repo out of OneDrive.** OneDrive syncs and locks thousands of build files, which makes builds slow and causes random `LNK1104: cannot open file` errors. Use a short local path such as `C:\dev\FastBus`, and run `git config --global core.longpaths true`.
+
+**What Windows cannot run locally** — GCC, ThreadSanitizer, UndefinedBehaviorSanitizer and the coverage report have no MSVC equivalent. They run in CI (GitHub's Linux runners) on every push and pull request; check the Actions tab. If you ever want them locally, WSL2 gives you a real Linux (see below), but it is optional.
+
+Visual Studio users can also open the folder directly (*File → Open → Folder*): VS reads `CMakePresets.json` and offers the `windows-*` presets in its toolbar.
+
+## Build (all platforms)
+
+All builds go through CMake presets; each preset builds into `build/<preset>/`, executables into `build/<preset>/bin/` (`bin/<Config>/` for Visual Studio presets). In-source builds are refused.
 
 | OS | Preset | Notes |
 |---|---|---|
 | Windows | `windows-msvc` | Visual Studio 2022 generator (primary). Build presets `windows-msvc` (Debug) and `windows-msvc-release`. |
-| Windows | `windows-clangcl` | clang-cl + Ninja; run from *Developer PowerShell for VS 2022*. Emits `compile_commands.json` for clangd / clang-tidy. |
-| Windows | `windows-asan` | MSVC AddressSanitizer (optional). |
+| Windows | `windows-clangcl` | clang-cl + Ninja; `dev.ps1` enters the VS developer environment for you. Emits `compile_commands.json` for clangd / clang-tidy. |
+| Windows | `windows-asan` | MSVC AddressSanitizer; the ASan runtime DLL is copied next to every exe, so tests run from any shell. |
+| Windows | `windows-tidy` | clang-cl + clang-tidy on every TU during the build. |
 | Linux | `linux-gcc`, `linux-clang` | Ninja, Debug. |
 | Linux | `linux-asan`, `linux-ubsan`, `linux-tsan` | Clang + sanitizer; includes the canary for that sanitizer. |
 | Linux | `linux-coverage` | GCC + `--coverage`; `cmake --build --preset linux-coverage --target coverage` (needs `gcovr`). |
@@ -23,7 +51,7 @@ ctest --preset <preset>
 
 Local overrides: copy `CMakeUserPresets.json.example` to `CMakeUserPresets.json` (gitignored).
 
-### Linux presets from Windows (WSL2)
+### Optional: Linux presets from Windows (WSL2)
 
 ```powershell
 wsl --install -d Ubuntu-24.04          # once
@@ -40,8 +68,8 @@ cmake --preset linux-clang && cmake --build --preset linux-clang && ctest --pres
 
 ## Formatting and lint
 
-- `cmake --build --preset <p> --target format` (or `python scripts/run_clang_format.py --fix`) formats everything; `--target format-check` / `--check` verifies. clang-format **18** is the reference version.
-- clang-tidy: use the `linux-tidy` preset, or clangd with `--clang-tidy` in your editor.
+- `.\scripts\dev.ps1 format` (Windows) or `python scripts/run_clang_format.py --fix` formats everything; `--check` verifies. clang-format **18** is the reference version (CI); the script warns if yours differs. On Windows it also finds the clang-format shipped with Visual Studio or the LLVM installer.
+- clang-tidy: `.\scripts\dev.ps1 tidy` (Windows), the `linux-tidy` preset, or clangd with `--clang-tidy` in your editor.
 - `python scripts/check_file_length.py` — code lines per file in `include/` and `src/`: warning > 150, error > 300.
 - `python scripts/check_layering.py` — modules may only include lower layers (see `docs/PLAN.md`).
 - Optional: `pre-commit install` runs the same scripts on commit.

@@ -219,6 +219,7 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 ### M0.8 Developer ergonomics  — `P1, S`
 - [x] `.vscode/` recommendations (CMake Tools, clangd, clang-format) and `settings.json` using presets.
 - [x] CONTRIBUTING: WSL2 recipe for running `linux-*` presets from Windows.
+- [~] Windows-first workflow (owner has no Linux): `scripts/dev.ps1`, `windows-tidy` preset, clang-cl warning fix, MSVC ASan runtime staging, CI Windows matrix via `dev.ps1`. — *script smoke-tested with PowerShell 7 (Linux); Windows verification = first CI run*
 
 ### M0.9 Verification  — `P0, M`
 - [~] Clean clone → configure/build/test passes on: Windows MSVC (local), Linux gcc/clang (CI or WSL2). — *Linux GCC/Clang verified locally; Windows MSVC pending*
