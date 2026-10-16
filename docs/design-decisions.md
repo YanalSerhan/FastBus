@@ -6,23 +6,23 @@ Architecture Decision Records (ADRs) live in [`adr/`](adr/). Each has Context / 
 
 | ADR | Title | Status | Decided in |
 |---|---|---|---|
-| [ADR-001](adr/ADR-001-error-handling.md) | Error handling without exceptions on the hot path | proposed | M1 |
+| [ADR-001](adr/ADR-001-error-handling.md) | Error handling without exceptions on the hot path | proposed (drafted, awaiting approval) | M1 |
 | [ADR-002](adr/ADR-002-platform-abstraction.md) | Platform abstraction by build-time source selection | proposed | M2 |
 | [ADR-003](adr/ADR-003-fanout-zero-copy.md) | Fan-out / zero-copy design | proposed | M2 |
 | [ADR-004](adr/ADR-004-wire-shm-layout.md) | Wire / shared-memory layout rules | proposed | M2 |
 | [ADR-005](adr/ADR-005-checksum.md) | Checksum algorithm and policy | proposed | M2 |
 | [ADR-006](adr/ADR-006-prng.md) | Reproducible PRNG and distributions | proposed | M6 |
-| [ADR-007](adr/ADR-007-clock-injection.md) | Injectable time | proposed | M1 |
+| [ADR-007](adr/ADR-007-clock-injection.md) | Injectable time | proposed (drafted, awaiting approval) | M1 |
 | [ADR-008](adr/ADR-008-transport-interface.md) | Transport interface: static vs dynamic polymorphism | proposed | M3 |
-| [ADR-009](adr/ADR-009-cache-line.md) | Cache-line size constant | proposed | M1 |
+| [ADR-009](adr/ADR-009-cache-line.md) | Cache-line size constant | proposed (drafted, awaiting approval) | M1 |
 | [ADR-010](adr/ADR-010-registry-concurrency.md) | Discovery registry concurrency | proposed | M3 |
 | [ADR-011](adr/ADR-011-benchmark-methodology.md) | Benchmark methodology and regression policy | proposed | M9 |
 
 ## Gate 0 open questions (G0.1)
 
-The scaffold was built with the **proposed defaults**. Status: *adopted provisionally — awaiting owner confirmation*. Changing an answer later is cheap at this stage.
+The scaffold was built with the **proposed defaults**. Status: **confirmed by the owner on 2026-10-16**.
 
-| Q | Question | Provisional answer |
+| Q | Question | Decision |
 |---|---|---|
 | Q1 | Dependencies | Yes to GoogleTest, Google Benchmark, CLI11, nlohmann_json, Eigen — pinned by tag + SHA ([versions.md](versions.md)). Eigen pinned when M7 starts. |
 | Q2 | Zero-copy fan-out | (a) descriptor rings + shared slab with refcounts; formal decision in ADR-003 at M2. |

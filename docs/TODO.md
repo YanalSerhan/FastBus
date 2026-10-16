@@ -3,7 +3,7 @@
 > Living task tracker for the fastbus project. Updated at the start and end of every work session.
 > Source of truth for scope: `docs/PRD.md`. Source of truth for design: `docs/PLAN.md`.
 >
-> **Current state (2026-10-16):** G0 docs drafted, M0 scaffold built and verified locally on Linux. Next: owner reviews G0.1 answers, commits/pushes, confirms CI is green (M0.9), then says "go" for M1.
+> **Current state (2026-10-16):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 planning docs drafted ([milestones/M1-plan.md](milestones/M1-plan.md)); waiting for the owner's "go" before any M1 code.
 
 ## 0. How to read this file
 
@@ -42,15 +42,15 @@
 ## 2. Gate 0 — decisions and docs before any code
 
 ### G0.1 Open questions (answer before M0 starts)  — `P0, S`
-- [~] **Q1 Dependencies.** Allow these pinned FetchContent deps: GoogleTest, Google Benchmark, CLI11, nlohmann_json (scenario/config files), Eigen (EKF, fixed-size = no heap)? *Proposed default: yes to all five.* → *provisionally adopted (see design-decisions.md), awaiting owner confirmation*
-- [~] **Q2 Zero-copy fan-out design.** (a) per-subscriber rings carrying *descriptors* into a publisher-owned shared slab with refcounts (true zero-copy to N subscribers), or (b) per-subscriber rings carrying full messages (copy per extra subscriber). *Proposed default: (a), decided formally in ADR-003 at the start of M2.* → *provisionally adopted (see design-decisions.md), awaiting owner confirmation*
-- [~] **Q3 File-size rule.** Adopt the 150-code-line-per-file guideline from the attached standards? *Proposed default: soft limit (CI warning > 150 code lines, fail > 300) for hand-written `src/` and `include/`; tests, benchmarks, generated code, and platform impls are exempt but listed in `known-issues.md`.* → *provisionally adopted (see design-decisions.md), awaiting owner confirmation*
-- [~] **Q4 Toolchain.** MSVC (VS generator) as primary on Windows, clang-cl + Ninja as secondary (needed for local clang-tidy via `compile_commands.json`), WSL2 for local Linux/sanitizer runs? Minimum OS: Windows 10+, Ubuntu 22.04+. macOS out of scope. → *provisionally adopted (see design-decisions.md), awaiting owner confirmation*
-- [~] **Q5 License/attribution.** MIT, copyright holder name + year (2026) for the LICENSE file. Repo public from day one or private until M10? → *provisionally adopted (see design-decisions.md), awaiting owner confirmation*
+- [x] **Q1 Dependencies.** Allow these pinned FetchContent deps: GoogleTest, Google Benchmark, CLI11, nlohmann_json (scenario/config files), Eigen (EKF, fixed-size = no heap)? *Proposed default: yes to all five.* → *confirmed by owner 2026-10-16 (proposed default adopted; see design-decisions.md)*
+- [x] **Q2 Zero-copy fan-out design.** (a) per-subscriber rings carrying *descriptors* into a publisher-owned shared slab with refcounts (true zero-copy to N subscribers), or (b) per-subscriber rings carrying full messages (copy per extra subscriber). *Proposed default: (a), decided formally in ADR-003 at the start of M2.* → *confirmed by owner 2026-10-16 (proposed default adopted; see design-decisions.md)*
+- [x] **Q3 File-size rule.** Adopt the 150-code-line-per-file guideline from the attached standards? *Proposed default: soft limit (CI warning > 150 code lines, fail > 300) for hand-written `src/` and `include/`; tests, benchmarks, generated code, and platform impls are exempt but listed in `known-issues.md`.* → *confirmed by owner 2026-10-16 (proposed default adopted; see design-decisions.md)*
+- [x] **Q4 Toolchain.** MSVC (VS generator) as primary on Windows, clang-cl + Ninja as secondary (needed for local clang-tidy via `compile_commands.json`), WSL2 for local Linux/sanitizer runs? Minimum OS: Windows 10+, Ubuntu 22.04+. macOS out of scope. → *confirmed by owner 2026-10-16 (proposed default adopted; see design-decisions.md)*
+- [x] **Q5 License/attribution.** MIT, copyright holder name + year (2026) for the LICENSE file. Repo public from day one or private until M10? → *confirmed by owner 2026-10-16 (proposed default adopted; see design-decisions.md)*
 
 ### G0.2 Architecture approval  — `P0, M`
-- [~] Present the module dependency graph (below) and get approval. → *in docs/PLAN.md §3, awaiting approval*
-- [~] Agree on layering rules: lower layers never include upper-layer headers; `tools/`, `examples/`, `modules/ekf` consume **only** the public API (`fastbus/api` + generated messages). → *written in PLAN.md, enforced by scripts/check_layering.py; awaiting approval*
+- [~] Present the module dependency graph (below) and get approval. → *in docs/PLAN.md §3; awaiting explicit approval*
+- [~] Agree on layering rules: lower layers never include upper-layer headers; `tools/`, `examples/`, `modules/ekf` consume **only** the public API (`fastbus/api` + generated messages). → *enforced by scripts/check_layering.py; awaiting explicit approval*
 
 ```mermaid
 graph TD
@@ -71,21 +71,21 @@ graph TD
 ### G0.3 Planning documents  — `P0, M`
 - [~] `docs/PRD.md`: purpose, target users/recruiters, problem statement, goals/non-goals, KPIs (latency/throughput targets as *hypotheses*, final numbers filled in M9), acceptance criteria, constraints, risks. → *draft*
 - [~] `docs/PLAN.md`: C4 diagrams (Context/Container/Component) in Mermaid, module responsibilities, data flow, threading model, deployment (processes, shm segments, UDP peers). → *draft*
-- [~] `docs/TODO.md` (this file) committed. → *file in place; owner commits*
+- [x] `docs/TODO.md` (this file) committed. → *committed by owner*
 - [x] `docs/design-decisions.md` created with ADR index (stubs below).
 - [x] Per-mechanism PRD stubs created (filled just before the milestone that builds them): `PRD_spsc_ring.md`, `PRD_mpsc_queue.md`, `PRD_shm_transport.md`, `PRD_api_qos_discovery.md`, `PRD_idl.md`, `PRD_record_replay.md`, `PRD_udp_reliable.md`, `PRD_fault_injection.md`, `PRD_ekf.md`, `PRD_benchmarks.md`.
 - [x] Each PRD includes the **building-block contract**: Input data / Output data / Setup data (per the standards doc §16). → *section present in every stub*
 
 ### G0.4 ADR stubs to create (each gets Context / Options / Decision / Consequences)
-- [~] ADR-001 Error handling without exceptions on hot path: C++20 has no `std::expected` → own `Result<T,E>` (`[[nodiscard]]`), or pinned `tl::expected`. → *stub in docs/adr/*
+- [~] ADR-001 Error handling without exceptions on hot path: C++20 has no `std::expected` → own `Result<T,E>` (`[[nodiscard]]`), or pinned `tl::expected`. → *drafted for M1 (docs/adr/), awaiting owner approval*
 - [~] ADR-002 Platform abstraction by build-time source selection (`platform/windows/*.cpp` vs `platform/posix/*.cpp`), zero `#ifdef` in core logic. → *stub in docs/adr/*
 - [~] ADR-003 Fan-out/zero-copy design (Q2). → *stub in docs/adr/*
 - [~] ADR-004 Wire/shm layout: little-endian only, `static_assert(std::endian::native == std::endian::little)`, no pointers in shared memory (offsets only), explicit padding. → *stub in docs/adr/*
 - [~] ADR-005 Checksum: CRC32C (software table + SSE4.2/ARM CRC when available); optional on shm hot path, mandatory on UDP and log. → *stub in docs/adr/*
 - [~] ADR-006 PRNG: own PCG32/xoshiro256** + own distributions (`<random>` distributions are implementation-defined → not reproducible across MSVC/libstdc++/libc++). → *stub in docs/adr/*
-- [~] ADR-007 Time: injectable `Clock` interface; modules never call `steady_clock::now()` directly. → *stub in docs/adr/*
+- [~] ADR-007 Time: injectable `Clock` interface; modules never call `steady_clock::now()` directly. → *drafted for M1 (docs/adr/), awaiting owner approval*
 - [~] ADR-008 Transport interface: static (concepts) vs dynamic (virtual) polymorphism; how fault layer wraps loan-based transports. → *stub in docs/adr/*
-- [~] ADR-009 Cache-line constant: hard-coded 64 (128 on some ARM) rather than `std::hardware_destructive_interference_size` (GCC `-Winterference-size` ABI warning). → *stub in docs/adr/*
+- [~] ADR-009 Cache-line constant: hard-coded 64 (128 on some ARM) rather than `std::hardware_destructive_interference_size` (GCC `-Winterference-size` ABI warning). → *drafted for M1 (docs/adr/), awaiting owner approval*
 - [~] ADR-010 Registry concurrency: lock-free slot claim vs cross-process robust mutex. → *stub in docs/adr/*
 - [~] ADR-011 Benchmark methodology and regression policy. → *stub in docs/adr/*
 
@@ -177,13 +177,13 @@ fastbus/
 ### M0.3 CMake core  — `P0, L`
 - [x] Root `CMakeLists.txt`: `cmake_minimum_required(VERSION 3.24)`, `project(fastbus VERSION 0.1.0 LANGUAGES CXX)`, C++20, `CMAKE_CXX_EXTENSIONS OFF`, `CMAKE_EXPORT_COMPILE_COMMANDS ON`, forbid in-source builds. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1*
 - [x] Options: `FASTBUS_BUILD_TESTS/BENCHMARKS/EXAMPLES/TOOLS` (default ON when top-level), `FASTBUS_WARNINGS_AS_ERRORS` (default ON), `FASTBUS_SANITIZER` (none|address|undefined|thread), `FASTBUS_COVERAGE`, `FASTBUS_ENABLE_TIDY`. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1*
-- [~] `cmake/Warnings.cmake` → INTERFACE target `fastbus::warnings`, applied **only to our targets** (never to FetchContent deps). — *GCC/Clang verified (unused variable → error); MSVC flags unverified until Windows CI*
+- [x] `cmake/Warnings.cmake` → INTERFACE target `fastbus::warnings`, applied **only to our targets** (never to FetchContent deps). — *evidence: MSVC 19.44 / clang-cl 19.1 / GCC 13 / Clang 18 all `-Werror`-clean in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)*
   - MSVC: `/W4 /WX /permissive- /Zc:__cplusplus /utf-8 /external:W0`
   - GCC/Clang: `-Wall -Wextra -Wpedantic -Werror -Wshadow -Wconversion -Wsign-conversion -Wold-style-cast -Wnon-virtual-dtor -Woverloaded-virtual -Wcast-align -Wnull-dereference -Wdouble-promotion -Wformat=2`
   - Document any intentionally disabled warning with a reason.
-- [~] `cmake/Sanitizers.cmake`: ASan, UBSan (`-fno-sanitize-recover=all`), TSan; `-fno-omit-frame-pointer`; refuse invalid combos (TSan+ASan); MSVC ASan (`/fsanitize=address`) as optional P1 preset. — *Clang ASan/UBSan/TSan verified locally; MSVC ASan unverified*
+- [x] `cmake/Sanitizers.cmake`: ASan, UBSan (`-fno-sanitize-recover=all`), TSan; `-fno-omit-frame-pointer`; refuse invalid combos (TSan+ASan); MSVC ASan (`/fsanitize=address`) as optional P1 preset. — *evidence: Linux ASan/UBSan/TSan + MSVC ASan jobs green (canaries detected) in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718); MSVC ASan also locally on VS 17.14*
 - [x] `cmake/Dependencies.cmake`: FetchContent, **pinned by tag + commit SHA** (verify the current stable tags at M0 time and record them in `docs/versions.md`): GoogleTest (`gtest_force_shared_crt ON` for MSVC), Google Benchmark (`BENCHMARK_ENABLE_TESTING=OFF`), CLI11. Note: FetchContent's `SYSTEM` keyword needs CMake 3.25; with 3.24, mark include dirs as SYSTEM manually via target properties. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1*
-- [~] `cmake/Platform.cmake`: select `src/platform/windows` or `src/platform/posix`; link `Threads::Threads`, `ws2_32`, `rt`/`dl` where needed (older glibc needs `-lrt` for `shm_open`). — *posix verified; windows branch unverified*
+- [x] `cmake/Platform.cmake`: select `src/platform/windows` or `src/platform/posix`; link `Threads::Threads`, `ws2_32`, `rt`/`dl` where needed (older glibc needs `-lrt` for `shm_open`). — *evidence: windows + posix backends both configured in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)*
 - [x] `cmake/Coverage.cmake`: gcov/lcov (GCC) or llvm-cov (Clang) flags; report target. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1* (gcovr 8.6)
 - [x] Helper `fastbus_add_library()` / `fastbus_add_test()` / `fastbus_add_benchmark()` so every target gets warnings, include dirs, aliases (`fastbus::core` …), and `ctest` registration consistently. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1*
 - [x] Generated `fastbus/version.hpp` from `version.hpp.in`. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1*
@@ -191,15 +191,15 @@ fastbus/
 
 ### M0.4 CMakePresets.json  — `P0, M`
 Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, so skip those). Hidden base presets + host-OS `condition`.
-- [~] Configure presets: `windows-msvc` (VS 2022 generator), `windows-clangcl` (Ninja, exports `compile_commands.json`), `linux-gcc`, `linux-clang`, `linux-asan`, `linux-ubsan`, `linux-tsan`, `linux-coverage`, `linux-bench` (Release + `-fno-omit-frame-pointer`), optional `windows-asan`. — *all Linux presets verified; Windows presets unverified*
-- [~] Matching build presets (multi-config needs `configuration`) and test presets (`outputOnFailure`, `--output-junit` for CI summaries, per-preset label filters). — *JUnit via `ctest --output-junit` on the command line (test-preset `outputJUnitFile` needs preset v6 / CMake 3.25)*
+- [x] Configure presets: `windows-msvc` (VS 2022 generator), `windows-clangcl` (Ninja, exports `compile_commands.json`), `linux-gcc`, `linux-clang`, `linux-asan`, `linux-ubsan`, `linux-tsan`, `linux-coverage`, `linux-bench` (Release + `-fno-omit-frame-pointer`), optional `windows-asan`. — *evidence: all presets used in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718); windows-tidy added*
+- [x] Matching build presets (multi-config needs `configuration`) and test presets (`outputOnFailure`, `--output-junit` for CI summaries, per-preset label filters). — *JUnit via `ctest --output-junit` on the command line (test-preset `outputJUnitFile` needs preset v6 / CMake 3.25)*
 - [x] `CMakeUserPresets.json.example` for local overrides (gitignored real file).
-- [~] Verify: `cmake --list-presets` shows the right set on each OS. — *Linux verified; Windows pending*
+- [x] Verify: `cmake --list-presets` shows the right set on each OS. — *Linux (local) and Windows (owner machine) verified*
 
 ### M0.5 Format and lint configs  — `P0, M`
 - [x] `.clang-format` (choose base style, 100 cols, document choice), CMake targets `format` and `format-check`. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1* (clang-format 18)
 - [x] `.clang-tidy` checked in: `bugprone-*, cert-*, concurrency-*, cppcoreguidelines-*` (curated), `misc-*, modernize-*, performance-*, readability-*`; `WarningsAsErrors: '*'`; `readability-identifier-naming` per §3.4; every disabled check documented with a reason in the file. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1* (naming + const-correctness violations fail the build)
-- [~] clang-tidy runs on Linux CI via `compile_commands.json`; locally on Windows via `windows-clangcl` preset (VS generator doesn't emit compile commands). — *`linux-tidy` preset verified locally; CI pending*
+- [x] clang-tidy runs on Linux CI via `compile_commands.json`; locally on Windows via `windows-clangcl` preset (VS generator doesn't emit compile commands). — *Linux `tidy` job + Windows `windows-tidy` job green in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)*
 - [x] Optional `.pre-commit-config.yaml` running clang-format.
 - [x] `scripts/check_file_length.py` (counts code lines excluding blanks/comments; policy per Q3) and `scripts/check_layering.py` (include-graph rule check) — stubs wired into CI. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1*
 
@@ -210,26 +210,26 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 - [x] **Canary tests** (`tests/canary/`, only built in sanitizer presets, marked `WILL_FAIL TRUE`): deliberate data race (TSan), heap overflow (ASan), signed overflow (UBSan). They prove each sanitizer is really active. — *evidence: local run 2026-10-16, Linux, GCC 13.3 / Clang 18.1* (pass criterion: sanitizer report text via `PASS_REGULAR_EXPRESSION`, stricter than `WILL_FAIL`)
 
 ### M0.7 GitHub Actions  — `P0, L`
-- [~] `ci.yml` jobs: `format-check`; `build-test` matrix (windows-msvc; ubuntu gcc and clang with the versions actually installed on the runner image — verify, don't assume); `sanitizers` (asan, ubsan, tsan as separate jobs); `tidy`; `coverage` (report only in M0, gate ≥ 85 % from M1); `bench-smoke`; `docs-check` (markdown links). — *written; not yet run on GitHub*
-- [~] Hygiene: `permissions: contents: read`, `concurrency` cancel-in-progress, actions pinned by SHA, `dependabot.yml` for actions, ccache + FetchContent cache, upload `Testing/` logs and JUnit XML on failure. — *written; not yet run*
-- [~] TSan runner quirk: on recent Ubuntu kernels TSan can crash with "unexpected memory mapping" due to ASLR entropy; add a step `sudo sysctl vm.mmap_rnd_bits=28` before TSan runs. — *step added*
+- [x] `ci.yml` jobs: `format-check`; `build-test` matrix (windows-msvc; ubuntu gcc and clang with the versions actually installed on the runner image — verify, don't assume); `sanitizers` (asan, ubsan, tsan as separate jobs); `tidy`; `coverage` (report only in M0, gate ≥ 85 % from M1); `bench-smoke`; `docs-check` (markdown links). — *all jobs green in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)*
+- [x] Hygiene: `permissions: contents: read`, `concurrency` cancel-in-progress, actions pinned by SHA, `dependabot.yml` for actions, ccache + FetchContent cache, upload `Testing/` logs and JUnit XML on failure. — *evidence: [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)*
+- [x] TSan runner quirk: on recent Ubuntu kernels TSan can crash with "unexpected memory mapping" due to ASLR entropy; add a step `sudo sysctl vm.mmap_rnd_bits=28` before TSan runs. — *TSan job green in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)*
 - [x] README badges: CI, license (coverage badge later).
 - Commit: `ci: add build, sanitizer, lint and benchmark-smoke workflows`
 
 ### M0.8 Developer ergonomics  — `P1, S`
 - [x] `.vscode/` recommendations (CMake Tools, clangd, clang-format) and `settings.json` using presets.
 - [x] CONTRIBUTING: WSL2 recipe for running `linux-*` presets from Windows.
-- [~] Windows-first workflow (owner has no Linux): `scripts/dev.ps1`, `windows-tidy` preset, clang-cl warning fix, MSVC ASan runtime staging, CI Windows matrix via `dev.ps1`. — *script smoke-tested with PowerShell 7 (Linux); Windows verification = first CI run*
+- [x] Windows-first workflow (owner has no Linux): `scripts/dev.ps1`, `windows-tidy` preset, clang-cl warning fix, MSVC ASan runtime staging, CI Windows matrix via `dev.ps1`. — *owner machine: `dev.ps1 doctor` + build/test/ASan green; CI Windows matrix green in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)*
 
 ### M0.9 Verification  — `P0, M`
-- [~] Clean clone → configure/build/test passes on: Windows MSVC (local), Linux gcc/clang (CI or WSL2). — *Linux GCC/Clang verified locally; Windows MSVC pending*
-- [~] Scratch branch with an unused variable → CI fails on all compilers (evidence linked). — *verified locally: GCC `-Werror=unused-variable`, Clang `-Werror,-Wunused-variable`, clang-tidy all fail; CI run pending*
-- [~] Canary tests fail as expected under each sanitizer. — *verified locally (linux-asan/ubsan/tsan: canary detected); CI pending*
+- [x] Clean clone → configure/build/test passes on: Windows MSVC (local), Linux gcc/clang (CI or WSL2). — *Windows MSVC on owner machine, Linux GCC/Clang in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)*
+- [~] Scratch branch with an unused variable → CI fails on all compilers (evidence linked). — *verified locally (GCC, Clang, clang-tidy fail on an unused variable); CI scratch-branch run left to the owner*
+- [x] Canary tests fail as expected under each sanitizer. — *ASan/UBSan/TSan canaries + MSVC ASan canary detected in [CI run 38907993718](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)*
 - [x] `format-check` fails on a mis-formatted file; passes after `format`. — *evidence: local run 2026-10-16 (clang-format 18)*
 - [ ] Record evidence (CI run links) in this task.
 
 ### M0.10 Milestone report  — `P0, S`
-- [ ] Summary, verified items, limitations, interview prep.
+- [x] Summary, verified items, limitations, interview prep. → *[docs/milestones/M0-report.md](milestones/M0-report.md)*
 - Interview prompts: (1) Why CMake presets and per-target warning flags instead of global flags? (2) How do you keep platform code out of core logic? (3) How do you know your sanitizer job is really checking something?
 
 ---

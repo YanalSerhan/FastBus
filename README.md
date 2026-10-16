@@ -13,9 +13,9 @@ Robotics and trading-style systems need to move small messages between processes
 
 | Milestone | Scope | Status |
 |---|---|---|
-| G0 | Decisions, planning docs, ADR/PRD stubs | in progress |
-| M0 | Repo scaffold: CMake + presets, CI, sanitizers, lint | in progress |
-| M1 | Platform layer + lock-free SPSC ring | not started |
+| G0 | Decisions, planning docs, ADR/PRD stubs | done |
+| M0 | Repo scaffold: CMake + presets, CI, sanitizers, lint | done ([report](docs/milestones/M0-report.md)) |
+| M1 | Platform layer + lock-free SPSC ring | planning ([plan](docs/milestones/M1-plan.md)) |
 | M2 | Shared-memory transport, loans, MPSC | not started |
 | M3 | Typed pub/sub API, discovery, QoS | not started |
 | M4 | IDL + `fbgen` | not started |

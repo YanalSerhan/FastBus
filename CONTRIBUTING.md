@@ -2,7 +2,7 @@
 
 ## Windows quick start (primary platform)
 
-You need **Visual Studio 2022** with the *Desktop development with C++* workload, **Git** and **[uv](https://docs.astral.sh/uv/)** (`winget install astral-sh.uv`). Optional but recommended: the *C++ Clang Compiler for Windows* component (VS Installer → Modify → Individual components), which provides clang-cl and clang-tidy.
+You need **Visual Studio 2022 (17.10 or newer; 17.4 is known to break MSVC ASan)** with the *Desktop development with C++* workload, **Git** and **[uv](https://docs.astral.sh/uv/)** (`winget install astral-sh.uv`). Optional but recommended: the *C++ Clang Compiler for Windows* component (VS Installer → Modify → Individual components), which provides clang-cl and clang-tidy.
 
 You do **not** need to install Python or any Python package yourself: uv downloads a matching Python and the pinned tools from `uv.lock` into `.venv` the first time a script runs.
 

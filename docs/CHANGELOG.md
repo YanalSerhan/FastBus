@@ -12,6 +12,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 - Python tooling managed by uv: `pyproject.toml`, `uv.lock` and `.python-version` pin clang-format 18.1.8, gcovr 8.6 and pre-commit. Scripts, CMake targets, pre-commit, `dev.ps1` and CI all run through `uv run`.
 
 ### Fixed
+- `dev.ps1` exits explicitly, so a stale native exit code (e.g. from `git config --get`) no longer fails CI steps.
+- clang-cl presets set the C compiler too (GoogleTest enables C); clang-tidy is found on PATH before fallback install folders.
 - `windows-clangcl` preset: clang-cl rejected `/external:anglebrackets` under `/WX`; clang-cl now has its own warning flags.
 - MSVC ASan tests failing with "DLL not found" outside a Developer Prompt: the ASan runtime is copied next to every executable.
 - `run_clang_format.py`: finds clang-format from Visual Studio / LLVM on Windows, warns on version mismatch, batches files to stay under the Windows command-line limit.
