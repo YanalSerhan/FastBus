@@ -7,6 +7,35 @@
 # Accepted values: none | address | undefined | thread | address,undefined
 # Refused: thread combined with address (the runtimes are mutually exclusive).
 
+# MSVC ASan executables load clang_rt.asan*_dynamic-x86_64.dll at startup. The DLL lives next
+# to cl.exe and is only on PATH inside a Developer Prompt, so a plain `ctest` from PowerShell
+# (or IDE test discovery) would fail with 0xc0000135 "DLL not found". Copy the runtime into
+# every output directory instead; requires CMAKE_RUNTIME_OUTPUT_DIRECTORY (root CMakeLists).
+function(_fastbus_stage_msvc_asan_runtime)
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        return()  # clang-cl links its ASan runtime differently; not staged here
+    endif()
+    get_filename_component(_cl_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    file(GLOB _asan_dlls "${_cl_dir}/clang_rt.asan*.dll")
+    if(NOT _asan_dlls)
+        message(WARNING "fastbus: MSVC ASan runtime DLLs not found next to ${CMAKE_CXX_COMPILER}; "
+                        "run tests from a Developer PowerShell")
+        return()
+    endif()
+    if(CMAKE_CONFIGURATION_TYPES)
+        set(_dirs "")
+        foreach(_cfg IN LISTS CMAKE_CONFIGURATION_TYPES)
+            list(APPEND _dirs "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${_cfg}")
+        endforeach()
+    else()
+        set(_dirs "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+    endif()
+    foreach(_dir IN LISTS _dirs)
+        file(COPY ${_asan_dlls} DESTINATION "${_dir}")
+    endforeach()
+    message(STATUS "fastbus: staged MSVC ASan runtime into ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+endfunction()
+
 string(REPLACE "," ";" _fastbus_sanitizers "${FASTBUS_SANITIZER}")
 list(TRANSFORM _fastbus_sanitizers STRIP)
 list(TRANSFORM _fastbus_sanitizers TOLOWER)
@@ -36,6 +65,7 @@ if(FASTBUS_ACTIVE_SANITIZERS)
         # MSVC ASan is incompatible with incremental linking and /RTC.
         add_link_options(/INCREMENTAL:NO)
         string(REGEX REPLACE "/RTC[1csu]+" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+        _fastbus_stage_msvc_asan_runtime()
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         list(JOIN FASTBUS_ACTIVE_SANITIZERS "," _san_list)
         set(_san_flags "-fsanitize=${_san_list}" -fno-omit-frame-pointer -g)

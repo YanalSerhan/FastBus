@@ -25,6 +25,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
+# All executables (tests, benchmarks, tools, canaries) land in one place:
+#   build/<preset>/bin/            single-config generators (Ninja)
+#   build/<preset>/bin/<Config>/   multi-config generators (Visual Studio)
+# On Windows this also lets runtime DLLs (e.g. the MSVC ASan runtime) sit next to every exe.
+if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
+endif()
+
 # ---------------------------------------------------------------------------------------------
 # Options
 # ---------------------------------------------------------------------------------------------
