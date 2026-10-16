@@ -1,0 +1,18 @@
+{
+  "version": 5,
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "My local dev preset (copy this file to CMakeUserPresets.json)",
+      "inherits": "linux-clang",
+      "cacheVariables": {
+        "FASTBUS_BUILD_BENCHMARKS": "OFF",
+        "FETCHCONTENT_UPDATES_DISCONNECTED": "ON"
+      }
+    }
+  ],
+  "buildPresets": [{ "name": "dev", "configurePreset": "dev" }],
+  "testPresets": [
+    { "name": "dev", "configurePreset": "dev", "output": { "outputOnFailure": true } }
+  ]
+}

@@ -1,0 +1,180 @@
+{
+  "version": 5,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "FASTBUS_WARNINGS_AS_ERRORS": "ON"
+      }
+    },
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "linux-base",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Ninja",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "windows-msvc",
+      "displayName": "Windows MSVC (VS 2022)",
+      "inherits": "windows-base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": { "value": "x64", "strategy": "set" }
+    },
+    {
+      "name": "windows-clangcl",
+      "displayName": "Windows clang-cl + Ninja (exports compile_commands.json for clang-tidy)",
+      "description": "Run from a 'Developer PowerShell for VS 2022' so clang-cl and the MSVC libs are on PATH.",
+      "inherits": "windows-base",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_COMPILER": "clang-cl"
+      }
+    },
+    {
+      "name": "windows-asan",
+      "displayName": "Windows MSVC + AddressSanitizer",
+      "inherits": "windows-msvc",
+      "cacheVariables": { "FASTBUS_SANITIZER": "address" }
+    },
+    {
+      "name": "linux-gcc",
+      "displayName": "Linux GCC (Debug)",
+      "inherits": "linux-base",
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "g++" }
+    },
+    {
+      "name": "linux-clang",
+      "displayName": "Linux Clang (Debug)",
+      "inherits": "linux-base",
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "clang++" }
+    },
+    {
+      "name": "linux-asan",
+      "displayName": "Linux Clang + AddressSanitizer",
+      "inherits": "linux-clang",
+      "cacheVariables": { "FASTBUS_SANITIZER": "address" }
+    },
+    {
+      "name": "linux-ubsan",
+      "displayName": "Linux Clang + UndefinedBehaviorSanitizer",
+      "inherits": "linux-clang",
+      "cacheVariables": { "FASTBUS_SANITIZER": "undefined" }
+    },
+    {
+      "name": "linux-tsan",
+      "displayName": "Linux Clang + ThreadSanitizer",
+      "inherits": "linux-clang",
+      "cacheVariables": { "FASTBUS_SANITIZER": "thread" }
+    },
+    {
+      "name": "linux-coverage",
+      "displayName": "Linux GCC + coverage",
+      "inherits": "linux-gcc",
+      "cacheVariables": {
+        "FASTBUS_COVERAGE": "ON",
+        "FASTBUS_BUILD_BENCHMARKS": "OFF"
+      }
+    },
+    {
+      "name": "linux-tidy",
+      "displayName": "Linux Clang + clang-tidy during build",
+      "inherits": "linux-clang",
+      "cacheVariables": {
+        "FASTBUS_ENABLE_TIDY": "ON",
+        "FASTBUS_BUILD_BENCHMARKS": "OFF"
+      }
+    },
+    {
+      "name": "linux-bench",
+      "displayName": "Linux GCC Release for benchmarks (frame pointers kept for profiling)",
+      "inherits": "linux-gcc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "-fno-omit-frame-pointer"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-msvc", "configurePreset": "windows-msvc", "configuration": "Debug" },
+    { "name": "windows-msvc-release", "configurePreset": "windows-msvc", "configuration": "Release" },
+    { "name": "windows-clangcl", "configurePreset": "windows-clangcl" },
+    { "name": "windows-asan", "configurePreset": "windows-asan", "configuration": "Debug" },
+    { "name": "linux-gcc", "configurePreset": "linux-gcc" },
+    { "name": "linux-clang", "configurePreset": "linux-clang" },
+    { "name": "linux-asan", "configurePreset": "linux-asan" },
+    { "name": "linux-ubsan", "configurePreset": "linux-ubsan" },
+    { "name": "linux-tsan", "configurePreset": "linux-tsan" },
+    { "name": "linux-coverage", "configurePreset": "linux-coverage" },
+    { "name": "linux-tidy", "configurePreset": "linux-tidy" },
+    { "name": "linux-bench", "configurePreset": "linux-bench" }
+  ],
+  "testPresets": [
+    {
+      "name": "test-base",
+      "hidden": true,
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "timeout": 300 }
+    },
+    {
+      "name": "windows-msvc",
+      "inherits": "test-base",
+      "configurePreset": "windows-msvc",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-msvc-release",
+      "inherits": "test-base",
+      "configurePreset": "windows-msvc",
+      "configuration": "Release"
+    },
+    { "name": "windows-clangcl", "inherits": "test-base", "configurePreset": "windows-clangcl" },
+    {
+      "name": "windows-asan",
+      "inherits": "test-base",
+      "configurePreset": "windows-asan",
+      "configuration": "Debug"
+    },
+    { "name": "linux-gcc", "inherits": "test-base", "configurePreset": "linux-gcc" },
+    { "name": "linux-clang", "inherits": "test-base", "configurePreset": "linux-clang" },
+    {
+      "name": "linux-asan",
+      "inherits": "test-base",
+      "configurePreset": "linux-asan",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:strict_string_checks=1:detect_stack_use_after_return=1:check_initialization_order=1"
+      }
+    },
+    {
+      "name": "linux-ubsan",
+      "inherits": "test-base",
+      "configurePreset": "linux-ubsan",
+      "environment": { "UBSAN_OPTIONS": "print_stacktrace=1:halt_on_error=1" }
+    },
+    {
+      "name": "linux-tsan",
+      "inherits": "test-base",
+      "configurePreset": "linux-tsan",
+      "environment": { "TSAN_OPTIONS": "halt_on_error=1:second_deadlock_stack=1" }
+    },
+    { "name": "linux-coverage", "inherits": "test-base", "configurePreset": "linux-coverage" },
+    { "name": "linux-tidy", "inherits": "test-base", "configurePreset": "linux-tidy" },
+    {
+      "name": "linux-bench",
+      "inherits": "test-base",
+      "configurePreset": "linux-bench",
+      "filter": { "exclude": { "label": "canary" } }
+    }
+  ]
+}
