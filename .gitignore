@@ -1,0 +1,44 @@
+# Build trees (all presets build into build/<preset>)
+/build/
+/out/
+cmake-build-*/
+CMakeUserPresets.json
+compile_commands.json
+
+# IDEs / tools
+.vs/
+.idea/
+*.user
+*.suo
+.cache/
+.clangd/
+# .vscode/ is committed (extensions + settings); personal files are not:
+.vscode/*.log
+.vscode/launch.json
+.vscode/c_cpp_properties.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+# Recordings: never commit logs, except committed test fixtures
+*.fblog
+!tests/data/**/*.fblog
+
+# Large result outputs (curated summaries/plots are committed explicitly)
+/results/**/raw/
+/results/**/*.tmp
+
+# Coverage / profiling
+*.gcda
+*.gcno
+*.profraw
+*.profdata
+perf.data*
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini

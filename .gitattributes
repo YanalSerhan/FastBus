@@ -1,0 +1,31 @@
+# Normalize line endings. Golden-file tests compare bytes, so text files must be LF in the
+# working tree on every OS — otherwise Windows checkouts get CRLF and golden tests fail.
+* text=auto
+
+*.hpp     text eol=lf
+*.cpp     text eol=lf
+*.h       text eol=lf
+*.in      text eol=lf
+*.cmake   text eol=lf
+CMakeLists.txt text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.py      text eol=lf
+*.fbidl   text eol=lf
+*.txt     text eol=lf
+.clang-format text eol=lf
+.clang-tidy   text eol=lf
+tests/golden/**  text eol=lf
+
+# Windows scripts keep CRLF
+*.bat     text eol=crlf
+*.ps1     text eol=crlf
+
+# Binary
+*.fblog   binary
+*.png     binary
+*.jpg     binary
+*.gif     binary
+*.pdf     binary
