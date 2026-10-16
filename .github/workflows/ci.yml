@@ -1,0 +1,206 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: "1"
+  CLANG_FORMAT: clang-format-18
+
+# Actions are pinned by commit SHA (tag in the trailing comment); Dependabot keeps them fresh.
+jobs:
+  # ------------------------------------------------------------------------------------------
+  lint:
+    name: format + file-length + layering
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Tool versions
+        run: |
+          clang-format-18 --version
+          python3 --version
+      - name: clang-format check
+        run: python3 scripts/run_clang_format.py --check
+      - name: File-length policy
+        run: python3 scripts/check_file_length.py
+      - name: Layering rules
+        run: python3 scripts/check_layering.py
+
+  # ------------------------------------------------------------------------------------------
+  build-test:
+    name: build-test (${{ matrix.preset }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2022, preset: windows-msvc }
+          - { os: ubuntu-24.04, preset: linux-gcc }
+          - { os: ubuntu-24.04, preset: linux-clang }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Ninja (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Toolchain versions (verify, don't assume)
+        shell: bash
+        run: |
+          cmake --version
+          if [ "$RUNNER_OS" = "Linux" ]; then g++ --version; clang++ --version; ninja --version; fi
+      - uses: hendrikmuhs/ccache-action@f09c25b45002a07be2955cbe52e8cee55643f89d # v1.2.24
+        if: runner.os == 'Linux'
+        with:
+          key: ${{ matrix.preset }}
+      - name: Use ccache (Linux)
+        if: runner.os == 'Linux'
+        run: echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+      - name: Cache FetchContent sources
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/${{ matrix.preset }}/_deps
+          key: deps-${{ matrix.preset }}-${{ hashFiles('cmake/Dependencies.cmake') }}
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }} --parallel
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }} --output-junit junit.xml
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-logs-${{ matrix.preset }}
+          path: |
+            build/${{ matrix.preset }}/junit.xml
+            build/${{ matrix.preset }}/Testing/
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------------------------------
+  sanitizers:
+    name: sanitizer (${{ matrix.preset }})
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [linux-asan, linux-ubsan, linux-tsan]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Ninja + clang sanitizer runtimes
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libclang-rt-18-dev
+      - name: Reduce ASLR entropy for TSan
+        # Recent Ubuntu kernels use mmap_rnd_bits=32, which makes TSan abort with
+        # "unexpected memory mapping". 28 bits restores a layout TSan supports.
+        if: matrix.preset == 'linux-tsan'
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - uses: hendrikmuhs/ccache-action@f09c25b45002a07be2955cbe52e8cee55643f89d # v1.2.24
+        with:
+          key: ${{ matrix.preset }}
+      - run: echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+      - name: Cache FetchContent sources
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/${{ matrix.preset }}/_deps
+          key: deps-${{ matrix.preset }}-${{ hashFiles('cmake/Dependencies.cmake') }}
+      - run: cmake --preset ${{ matrix.preset }}
+      - run: cmake --build --preset ${{ matrix.preset }} --parallel
+      - name: Test (incl. canary that proves the sanitizer is active)
+        run: ctest --preset ${{ matrix.preset }} --output-junit junit.xml
+      - name: Upload test logs
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-logs-${{ matrix.preset }}
+          path: |
+            build/${{ matrix.preset }}/junit.xml
+            build/${{ matrix.preset }}/Testing/
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------------------------------
+  tidy:
+    name: clang-tidy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build clang-tidy-18
+      - run: clang-tidy-18 --version
+      - name: Cache FetchContent sources
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/linux-tidy/_deps
+          key: deps-linux-tidy-${{ hashFiles('cmake/Dependencies.cmake') }}
+      - run: cmake --preset linux-tidy -DFASTBUS_CLANG_TIDY=/usr/bin/clang-tidy-18
+      - name: Build with clang-tidy (warnings are errors)
+        run: cmake --build --preset linux-tidy --parallel
+
+  # ------------------------------------------------------------------------------------------
+  coverage:
+    name: coverage (report only in M0)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - run: pip install gcovr==8.6
+      - name: Cache FetchContent sources
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/linux-coverage/_deps
+          key: deps-linux-coverage-${{ hashFiles('cmake/Dependencies.cmake') }}
+      - run: cmake --preset linux-coverage
+      - run: cmake --build --preset linux-coverage --parallel
+      - name: Tests + coverage report
+        run: cmake --build --preset linux-coverage --target coverage
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-report
+          path: build/linux-coverage/coverage/
+
+  # ------------------------------------------------------------------------------------------
+  bench-smoke:
+    name: benchmark smoke
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - name: Cache FetchContent sources
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/linux-bench/_deps
+          key: deps-linux-bench-${{ hashFiles('cmake/Dependencies.cmake') }}
+      - run: cmake --preset linux-bench -DFASTBUS_BUILD_TESTS=OFF
+      - run: cmake --build --preset linux-bench --parallel
+      - name: Run smoke benchmark
+        # Google Benchmark >= 1.8 takes a unit suffix ("0.01s"); older versions a bare number.
+        run: >
+          ./build/linux-bench/benchmarks/fastbus_bm_smoke
+          --benchmark_min_time=0.01s
+          --benchmark_format=console
+          --benchmark_out=bench-smoke.json --benchmark_out_format=json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bench-smoke
+          path: bench-smoke.json
+
+  # ------------------------------------------------------------------------------------------
+  docs-check:
+    name: markdown links
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check relative links in Markdown (offline, no network flakiness)
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --offline --no-progress --include-fragments './**/*.md'
+          fail: true
