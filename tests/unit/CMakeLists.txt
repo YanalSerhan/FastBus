@@ -10,3 +10,9 @@ fastbus_add_test(fastbus_unit_core_types
         result_test.cpp
     DEPS fastbus::core
     LABELS unit)
+
+fastbus_add_test(fastbus_unit_clock
+    SOURCES clock_test.cpp
+    DEPS fastbus::core
+    LABELS unit
+    TIMEOUT 120)
