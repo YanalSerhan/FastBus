@@ -208,9 +208,11 @@ function Invoke-Lint {
 function Invoke-Bench {
     $script:Config = 'Release'
     Invoke-Build 'windows-msvc'
-    $exe = Join-Path $RepoRoot 'build\windows-msvc\bin\Release\fastbus_bm_smoke.exe'
-    Write-Step 'Benchmarks'
-    Invoke-Native $exe @('--benchmark_min_time=0.05s')
+    $binDir = Join-Path $RepoRoot 'build\windows-msvc\bin\Release'
+    foreach ($exe in Get-ChildItem -Path $binDir -Filter 'fastbus_bm_*.exe' | Sort-Object Name) {
+        Write-Step ('Benchmark: {0}' -f $exe.BaseName)
+        Invoke-Native $exe.FullName @('--benchmark_min_time=0.05s')
+    }
 }
 
 function Test-Tool([string]$Name, [string]$Hint) {

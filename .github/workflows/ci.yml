@@ -234,10 +234,18 @@ jobs:
           --benchmark_min_time=0.01s
           --benchmark_format=console
           --benchmark_out=bench-smoke.json --benchmark_out_format=json
+      - name: Run SPSC ring benchmark (smoke length; real numbers come from M9 runs)
+        run: >
+          ./build/linux-bench/bin/fastbus_bm_spsc_ring
+          --benchmark_min_time=0.01s
+          --benchmark_format=console
+          --benchmark_out=bench-spsc-ring.json --benchmark_out_format=json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: bench-smoke
-          path: bench-smoke.json
+          path: |
+            bench-smoke.json
+            bench-spsc-ring.json
 
   # ------------------------------------------------------------------------------------------
   docs-check:
