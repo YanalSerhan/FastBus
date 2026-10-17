@@ -5,6 +5,7 @@
 # Each backend implements the same headers in include/fastbus/platform/.
 fastbus_add_library(platform
     SOURCES
+        ${FASTBUS_PLATFORM_SOURCE_DIR}/thread.cpp
         ${FASTBUS_PLATFORM_SOURCE_DIR}/time_source.cpp
     PUBLIC_DEPS
         fastbus::platform_libs)
