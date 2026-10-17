@@ -6,15 +6,15 @@ Architecture Decision Records (ADRs) live in [`adr/`](adr/). Each has Context / 
 
 | ADR | Title | Status | Decided in |
 |---|---|---|---|
-| [ADR-001](adr/ADR-001-error-handling.md) | Error handling without exceptions on the hot path | proposed (drafted, awaiting approval) | M1 |
+| [ADR-001](adr/ADR-001-error-handling.md) | Error handling without exceptions on the hot path | accepted | M1 |
 | [ADR-002](adr/ADR-002-platform-abstraction.md) | Platform abstraction by build-time source selection | proposed | M2 |
 | [ADR-003](adr/ADR-003-fanout-zero-copy.md) | Fan-out / zero-copy design | proposed | M2 |
 | [ADR-004](adr/ADR-004-wire-shm-layout.md) | Wire / shared-memory layout rules | proposed | M2 |
 | [ADR-005](adr/ADR-005-checksum.md) | Checksum algorithm and policy | proposed | M2 |
 | [ADR-006](adr/ADR-006-prng.md) | Reproducible PRNG and distributions | proposed | M6 |
-| [ADR-007](adr/ADR-007-clock-injection.md) | Injectable time | proposed (drafted, awaiting approval) | M1 |
+| [ADR-007](adr/ADR-007-clock-injection.md) | Injectable time | accepted | M1 |
 | [ADR-008](adr/ADR-008-transport-interface.md) | Transport interface: static vs dynamic polymorphism | proposed | M3 |
-| [ADR-009](adr/ADR-009-cache-line.md) | Cache-line size constant | proposed (drafted, awaiting approval) | M1 |
+| [ADR-009](adr/ADR-009-cache-line.md) | Cache-line size constant | accepted | M1 |
 | [ADR-010](adr/ADR-010-registry-concurrency.md) | Discovery registry concurrency | proposed | M3 |
 | [ADR-011](adr/ADR-011-benchmark-methodology.md) | Benchmark methodology and regression policy | proposed | M9 |
 
@@ -39,6 +39,8 @@ The scaffold was built with the **proposed defaults**. Status: **confirmed by th
 | 2026-10-16 | build | FetchContent deps pinned by commit SHA, include dirs marked SYSTEM manually | `FetchContent_Declare(SYSTEM)` needs CMake 3.25; minimum is 3.24. |
 | 2026-10-16 | test | Sanitizer canaries pass on the sanitizer's report text (`PASS_REGULAR_EXPRESSION`) instead of bare `WILL_FAIL` | `WILL_FAIL` would also pass on an unrelated crash; matching the report proves the right sanitizer fired. |
 | 2026-10-16 | style | clang-format base = Google, 4-space indent, 100 columns | Google style matches the naming scheme (`kConstants`, `member_`); 4 spaces / 100 cols for readability of templated code. |
+| 2026-10-17 | core | `StrongType<T, Tag>` with explicit construction and defaulted `<=>`, no arithmetic | IDs are compared and hashed, never added; arithmetic lives only in purpose-built types (`Duration`, `Timestamp`, `next(SequenceNumber)`), so the type system rejects `Timestamp + Timestamp`. |
+| 2026-10-17 | core | `Error` carries a `const char*` to a static literal, not a `std::string` | Errors stay trivially copyable and allocation-free, so they can be created on any path and placed in shared memory; dynamic context goes to logs, not into the error. |
 | 2026-10-16 | tooling | All Python tooling via uv (`pyproject.toml` + `uv.lock`), no pip | One command (`uv run`) gives every machine and CI job the same Python and tool versions; clang-format 18.1.8 from PyPI removes the local-vs-CI formatting mismatch; no global Python installs. `package = false`: the file pins tools, it is not a Python package. |
 | 2026-10-16 | platform | Windows is the primary local dev platform; Linux-only checks (GCC, TSan, UBSan, coverage) are delegated to CI | Owner develops on Windows only. CI runs both OSes on every push, so nothing goes unchecked; `scripts/dev.ps1` is the single Windows entry point and CI's Windows jobs call the same script. |
 | 2026-10-16 | build | clang-cl gets its own warning branch (no `/external:*`) | clang-cl rejects `/external:anglebrackets` under `/WX`; SYSTEM includes reach it as `-imsvc`, which already silences third-party headers. |

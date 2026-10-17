@@ -3,7 +3,7 @@
 > Living task tracker for the fastbus project. Updated at the start and end of every work session.
 > Source of truth for scope: `docs/PRD.md`. Source of truth for design: `docs/PLAN.md`.
 >
-> **Current state (2026-10-16):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 planning docs drafted ([milestones/M1-plan.md](milestones/M1-plan.md)); waiting for the owner's "go" before any M1 code.
+> **Current state (2026-10-16):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); step 1 (M1.1) done locally, awaiting CI.
 
 ## 0. How to read this file
 
@@ -49,8 +49,8 @@
 - [x] **Q5 License/attribution.** MIT, copyright holder name + year (2026) for the LICENSE file. Repo public from day one or private until M10? → *confirmed by owner 2026-10-16 (proposed default adopted; see design-decisions.md)*
 
 ### G0.2 Architecture approval  — `P0, M`
-- [~] Present the module dependency graph (below) and get approval. → *in docs/PLAN.md §3; awaiting explicit approval*
-- [~] Agree on layering rules: lower layers never include upper-layer headers; `tools/`, `examples/`, `modules/ekf` consume **only** the public API (`fastbus/api` + generated messages). → *enforced by scripts/check_layering.py; awaiting explicit approval*
+- [x] Present the module dependency graph (below) and get approval. → *approved by owner 2026-10-17*
+- [x] Agree on layering rules: lower layers never include upper-layer headers; `tools/`, `examples/`, `modules/ekf` consume **only** the public API (`fastbus/api` + generated messages). → *approved 2026-10-17; enforced by scripts/check_layering.py*
 
 ```mermaid
 graph TD
@@ -77,15 +77,15 @@ graph TD
 - [x] Each PRD includes the **building-block contract**: Input data / Output data / Setup data (per the standards doc §16). → *section present in every stub*
 
 ### G0.4 ADR stubs to create (each gets Context / Options / Decision / Consequences)
-- [~] ADR-001 Error handling without exceptions on hot path: C++20 has no `std::expected` → own `Result<T,E>` (`[[nodiscard]]`), or pinned `tl::expected`. → *drafted for M1 (docs/adr/), awaiting owner approval*
+- [x] ADR-001 Error handling without exceptions on hot path: C++20 has no `std::expected` → own `Result<T,E>` (`[[nodiscard]]`), or pinned `tl::expected`. → *accepted 2026-10-17*
 - [~] ADR-002 Platform abstraction by build-time source selection (`platform/windows/*.cpp` vs `platform/posix/*.cpp`), zero `#ifdef` in core logic. → *stub in docs/adr/*
 - [~] ADR-003 Fan-out/zero-copy design (Q2). → *stub in docs/adr/*
 - [~] ADR-004 Wire/shm layout: little-endian only, `static_assert(std::endian::native == std::endian::little)`, no pointers in shared memory (offsets only), explicit padding. → *stub in docs/adr/*
 - [~] ADR-005 Checksum: CRC32C (software table + SSE4.2/ARM CRC when available); optional on shm hot path, mandatory on UDP and log. → *stub in docs/adr/*
 - [~] ADR-006 PRNG: own PCG32/xoshiro256** + own distributions (`<random>` distributions are implementation-defined → not reproducible across MSVC/libstdc++/libc++). → *stub in docs/adr/*
-- [~] ADR-007 Time: injectable `Clock` interface; modules never call `steady_clock::now()` directly. → *drafted for M1 (docs/adr/), awaiting owner approval*
+- [x] ADR-007 Time: injectable `Clock` interface; modules never call `steady_clock::now()` directly. → *accepted 2026-10-17*
 - [~] ADR-008 Transport interface: static (concepts) vs dynamic (virtual) polymorphism; how fault layer wraps loan-based transports. → *stub in docs/adr/*
-- [~] ADR-009 Cache-line constant: hard-coded 64 (128 on some ARM) rather than `std::hardware_destructive_interference_size` (GCC `-Winterference-size` ABI warning). → *drafted for M1 (docs/adr/), awaiting owner approval*
+- [x] ADR-009 Cache-line constant: hard-coded 64 (128 on some ARM) rather than `std::hardware_destructive_interference_size` (GCC `-Winterference-size` ABI warning). → *accepted 2026-10-17*
 - [~] ADR-010 Registry concurrency: lock-free slot claim vs cross-process robust mutex. → *stub in docs/adr/*
 - [~] ADR-011 Benchmark methodology and regression policy. → *stub in docs/adr/*
 
@@ -245,14 +245,14 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 - No heap allocation inside push/pop (verified by test, see M1.9).
 
 ### M1.0 Docs first  — `P0, M`
-- [ ] `docs/PRD_spsc_ring.md`: purpose, invariants, API contract, input/output/setup data, edge cases (full, empty, wrap), performance hypotheses, non-goals (no blocking, no multi-producer).
-- [ ] ADR-001, ADR-007, ADR-009 written.
+- [x] `docs/PRD_spsc_ring.md`: purpose, invariants, API contract, input/output/setup data, edge cases (full, empty, wrap), performance hypotheses, non-goals (no blocking, no multi-producer).
+- [x] ADR-001, ADR-007, ADR-009 written. → *accepted 2026-10-17*
 
 ### M1.1 Strong types and error handling  — `P0, M`
-- [ ] `fastbus/core/strong_type.hpp` (tag-based, explicit ctor, `value()`, comparisons, hash) + `TopicId, NodeId, PublisherId, SequenceNumber, TypeId, SchemaVersion`.
-- [ ] `Timestamp` (int64 ns since clock epoch) and `Duration` strong types; arithmetic only between valid combos (`Timestamp - Timestamp = Duration`).
-- [ ] `Result<T, E>` + `Error` (code enum + static message; no allocation); `[[nodiscard]]`.
-- [ ] Tests: compile-time (`static_assert(!std::is_convertible_v<...>)`), arithmetic, hashing, `Result` monad-ish helpers.
+- [~] `fastbus/core/strong_type.hpp` (tag-based, explicit ctor, `value()`, comparisons, hash) + `TopicId, NodeId, PublisherId, SequenceNumber, TypeId, SchemaVersion`. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl = next CI run*
+- [~] `Timestamp` (int64 ns since clock epoch) and `Duration` strong types; arithmetic only between valid combos (`Timestamp - Timestamp = Duration`). — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl = next CI run*
+- [~] `Result<T, E>` + `Error` (code enum + static message; no allocation); `[[nodiscard]]`. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl = next CI run*
+- [~] Tests: compile-time (`static_assert(!std::is_convertible_v<...>)`), arithmetic, hashing, `Result` monad-ish helpers. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl = next CI run*
 
 ### M1.2 Platform: clocks  — `P0, M`
 - [ ] `Clock` interface (+ `SystemMonotonicClock`, `WallClock`) returning strong `Timestamp`. Windows impl via `QueryPerformanceCounter`/`GetSystemTimePreciseAsFileTime`; POSIX via `clock_gettime(CLOCK_MONOTONIC / CLOCK_REALTIME)`. Document that the monotonic clock is system-wide (needed for cross-process latency).

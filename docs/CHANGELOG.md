@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 ## [Unreleased]
 
 ### Added
+- `fastbus::core` (M1.1): `StrongType<T, Tag>` and the ID types (`TopicId`, `NodeId`, `PublisherId`, `SequenceNumber`, `TypeId`, `SchemaVersion`), `Duration`/`Timestamp`, `Error`/`ErrorCode`, `Result<T, E>` (std::expected subset), `fail_fast`/`check`/`debug_check` contract helpers, with unit and death tests.
 - Windows-first workflow: `scripts/dev.ps1` (doctor, build, test, asan, tidy, format, lint, bench, check) that enters the VS developer environment automatically.
 - `windows-tidy` preset; CI Windows jobs for MSVC Debug/Release, clang-cl, MSVC ASan and clang-tidy, all via `dev.ps1`.
 
