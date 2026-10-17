@@ -5,5 +5,6 @@ fastbus_add_library(core
         assert.cpp
         build_info.cpp
         error.cpp
+        sleep.cpp
     PUBLIC_DEPS
         fastbus::platform)
