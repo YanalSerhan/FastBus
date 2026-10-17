@@ -53,7 +53,7 @@ The ring's correctness argument was written **before** the code, with one tag pe
 | BL-007 | Unquoted `: ` in a YAML job name made GitHub reject the workflow → quoted; `ci.yml` now checked with a YAML parser + actionlint |
 | BL-008 | `fastbus_add_test` silently dropped every label after the first (gtest discovery flattens properties) → one label per binary, enforced with `FATAL_ERROR` |
 
-Windows-only clang-tidy 19 findings during M1.1/M1.2 (designated initializers, `kName` for static constants, void-cast of `timeEndPeriod`) were fixed and are covered by KI-008.
+Windows-only clang-tidy 19 findings were fixed as they appeared and are covered by KI-008: designated initializers, `kName` for static constants, void-cast of `timeEndPeriod` (M1.1/M1.2), and in M1.9 the allocation test's `operator delete` parameter names differing from MSVC's `_Block` (check disabled for `tests/alloc` only) plus `throw` rejected because the Windows tidy run treats exceptions as disabled (the test's `operator new` now aborts on exhaustion).
 
 ## Deviations from the plan
 

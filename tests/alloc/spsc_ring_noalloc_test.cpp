@@ -59,10 +59,13 @@ void counted_free(void* p, std::size_t alignment) noexcept {
     // NOLINTEND(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
 }
 
-void* throwing_alloc(std::size_t size, std::size_t alignment) {
+// The throwing operator new must never return null. A test binary that runs out of memory has
+// no useful way to continue, so it aborts instead of throwing (fastbus code never throws, and
+// the Windows clang-tidy run treats exceptions as disabled).
+void* checked_alloc(std::size_t size, std::size_t alignment) {
     void* p = counted_alloc(size, alignment);
     if (p == nullptr) {
-        throw std::bad_alloc{};
+        std::abort();
     }
     return p;
 }
@@ -88,16 +91,16 @@ public:
 // ---- Replacements of every global allocation function ([new.delete]) --------------------------
 // NOLINTBEGIN(misc-new-delete-overloads,cppcoreguidelines-owning-memory)
 void* operator new(std::size_t size) {
-    return throwing_alloc(size, 0);
+    return checked_alloc(size, 0);
 }
 void* operator new[](std::size_t size) {
-    return throwing_alloc(size, 0);
+    return checked_alloc(size, 0);
 }
 void* operator new(std::size_t size, std::align_val_t al) {
-    return throwing_alloc(size, static_cast<std::size_t>(al));
+    return checked_alloc(size, static_cast<std::size_t>(al));
 }
 void* operator new[](std::size_t size, std::align_val_t al) {
-    return throwing_alloc(size, static_cast<std::size_t>(al));
+    return checked_alloc(size, static_cast<std::size_t>(al));
 }
 void* operator new(std::size_t size, const std::nothrow_t& /*tag*/) noexcept {
     return counted_alloc(size, 0);

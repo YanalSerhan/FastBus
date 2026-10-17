@@ -1,0 +1,6 @@
+# tests/alloc replaces the global operator new/delete. MSVC's <vcruntime_new.h> declares them
+# with the reserved parameter name `_Block`; matching it would violate
+# bugprone-reserved-identifier, so the parameter-name consistency check is off here only.
+InheritParentConfig: true
+Checks: >
+  -readability-inconsistent-declaration-parameter-name
