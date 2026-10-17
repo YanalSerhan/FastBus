@@ -1,6 +1,6 @@
 # M1 — Platform layer + lock-free SPSC ring: plan
 
-> **Status: approved 2026-10-17, in progress.** The plan, [PRD_spsc_ring.md](../PRD_spsc_ring.md), [ADR-001](../adr/ADR-001-error-handling.md), [ADR-007](../adr/ADR-007-clock-injection.md), [ADR-009](../adr/ADR-009-cache-line.md) and the open-question answers below were approved by the owner. Steps 1 (M1.1) and 2 (M1.2) done; step 3 (M1.3) awaiting Windows CI.
+> **Status: approved 2026-10-17, in progress.** The plan, [PRD_spsc_ring.md](../PRD_spsc_ring.md), [ADR-001](../adr/ADR-001-error-handling.md), [ADR-007](../adr/ADR-007-clock-injection.md), [ADR-009](../adr/ADR-009-cache-line.md) and the open-question answers below were approved by the owner. Steps 1–3 (M1.1–M1.3) done; step 4 (M1.4) awaiting review and Windows CI.
 
 ## Scope
 

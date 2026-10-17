@@ -3,7 +3,7 @@
 > Living task tracker for the fastbus project. Updated at the start and end of every work session.
 > Source of truth for scope: `docs/PRD.md`. Source of truth for design: `docs/PLAN.md`.
 >
-> **Current state (2026-10-17):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1 + M1.2 green in CI; step 3 (M1.3 threads) awaiting Windows CI.
+> **Current state (2026-10-17):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1–M1.3 green in CI; step 4 (M1.4 layout + memory-ordering doc) awaiting review and Windows CI.
 
 ## 0. How to read this file
 
@@ -261,20 +261,20 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 - [x] Tests: monotonic non-decreasing across 1e6 calls, measured resolution/overhead reported (not asserted tightly), `ManualClock` determinism. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows (MSVC Debug/Release, clang-cl, MSVC ASan, clang-tidy 19) green in CI, owner-confirmed 2026-10-17*
 
 ### M1.3 Platform: thread utilities  — `P0, S`
-- [~] `cpu_relax()` (`_mm_pause` / `YieldProcessor` / ARM `yield`), `set_thread_affinity(core)`, `set_thread_name`, `current_thread_id`, `hardware_concurrency`. — *`cpu_relax()` in M1.2; rest in `fastbus/platform/thread.hpp` as `pin_current_thread` / `unpin_current_thread` / `set_current_thread_name` / `current_thread_name` / `current_thread_id` / `current_cpu` / `hardware_concurrency`; local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, format/length/layering clean; pinning test ran (not skipped) here; Windows backend = next CI run*
-- [~] Tests: affinity success where permitted, else `GTEST_SKIP()` with reason (CI containers may forbid it). — `tests/unit/thread_test.cpp` (8 tests) — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, format/length/layering clean; pinning test ran (not skipped) here; Windows backend = next CI run*
+- [x] `cpu_relax()` (`_mm_pause` / `YieldProcessor` / ARM `yield`), `set_thread_affinity(core)`, `set_thread_name`, `current_thread_id`, `hardware_concurrency`. — *`cpu_relax()` in M1.2; rest in `fastbus/platform/thread.hpp` as `pin_current_thread` / `unpin_current_thread` / `set_current_thread_name` / `current_thread_name` / `current_thread_id` / `current_cpu` / `hardware_concurrency`; local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, format/length/layering clean; pinning test ran (not skipped) here; Windows (MSVC Debug/Release, clang-cl, MSVC ASan, clang-tidy 19) green in CI, owner-confirmed 2026-10-17*
+- [x] Tests: affinity success where permitted, else `GTEST_SKIP()` with reason (CI containers may forbid it). — `tests/unit/thread_test.cpp` (8 tests) — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, format/length/layering clean; pinning test ran (not skipped) here; Windows (MSVC Debug/Release, clang-cl, MSVC ASan, clang-tidy 19) green in CI, owner-confirmed 2026-10-17*
 
 ### M1.4 Ring layout and ordering design  — `P0, L`
-- [ ] `fastbus/core/cache_line.hpp`: `inline constexpr size_t kCacheLine = 64`.
-- [ ] `SpscRingLayout<IndexT>` (POD, placeable in shared memory later): `alignas(kCacheLine) std::atomic<IndexT> head; alignas(kCacheLine) std::atomic<IndexT> tail;` plus producer-local `cached_head` and consumer-local `cached_tail` on their own lines; capacity power of two; monotonic indices (mask for slot index); `static_assert` on `is_always_lock_free`, sizes, offsets.
-- [ ] Document the rule that capacity must be ≤ half the index range for monotonic counters (so `tail - head` is unambiguous when counters wrap).
-- [ ] Write `docs/memory-ordering.md` **before** implementing:
+- [~] `fastbus/core/cache_line.hpp`: `inline constexpr size_t kCacheLine = 64`. — named `kCacheLineSize` (64) plus `kFalseSharingRange` (128) per ADR-009; *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, coverage, clang-tidy 18, format/length/layering clean; Windows = next CI run*
+- [~] `SpscRingLayout<IndexT>` (POD, placeable in shared memory later): `alignas(kCacheLine) std::atomic<IndexT> head; alignas(kCacheLine) std::atomic<IndexT> tail;` plus producer-local `cached_head` and consumer-local `cached_tail` on their own lines; capacity power of two; monotonic indices (mask for slot index); `static_assert` on `is_always_lock_free`, sizes, offsets. — `fastbus/core/spsc_ring_layout.hpp`: `SpscRingHeader<IndexT>` (4 × 128-byte blocks: tail | cached_head + mask | head | cached_tail + mask; the mask is stored per side so neither hot path reads the other side's line) + `SpscRingLayout<T, IndexT>`; offsets/size/alignment static_asserted; *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, coverage, clang-tidy 18, format/length/layering clean; Windows = next CI run*
+- [~] Document the rule that capacity must be ≤ half the index range for monotonic counters (so `tail - head` is unambiguous when counters wrap). — `docs/memory-ordering.md` §9, enforced by `SpscRingLayout::valid_capacity`, tested for `uint8_t`..`uint64_t`
+- [~] Write `docs/memory-ordering.md` **before** implementing: — written 2026-10-17, before any ring code; awaiting owner review
   - Slot ownership: slots in `[head, tail)` owned by consumer, the rest by producer.
   - Producer: write slot data → `tail.store(release)`. Consumer: `tail.load(acquire)` → read slot → `head.store(release)`. Producer: `head.load(acquire)` before reusing a slot.
   - Why `relaxed` is enough for own-index loads, why `seq_cst` is unnecessary, why no standalone fences (TSan doesn't model `atomic_thread_fence` reliably).
   - Why cached indices reduce cache-line ping-pong and why they remain correct (staleness only makes the ring look fuller/emptier, never wrong).
   - Mermaid timeline diagram of the two threads.
-- [ ] Constraints on `T`: `std::is_trivially_copyable_v && std::is_standard_layout_v` (concept), so the same code is valid in shm.
+- [~] Constraints on `T`: `std::is_trivially_copyable_v && std::is_standard_layout_v` (concept), so the same code is valid in shm. — `RingElement` (also: not const/volatile, `alignof(T) <= 64`) and `RingIndex` (unsigned, not bool, always lock-free); compile-time tests in `spsc_ring_layout_test.cpp`
 
 ### M1.5 Ring implementation  — `P0, L`
 - [ ] `SpscRingView<T, IndexT>` over caller-provided memory; `SpscRing<T>` owning wrapper (aligned allocation at construction only).
