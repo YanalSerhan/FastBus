@@ -11,6 +11,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 - Ring layout (M1.4): `core/cache_line.hpp` (`kCacheLineSize` 64, `kFalseSharingRange` 128), `core/spsc_ring_layout.hpp` (`RingElement`, `RingIndex`, `SpscRingHeader`, `SpscRingLayout`, `ring_distance`/`ring_next`/`ring_slot`), and `docs/memory-ordering.md` (full happens-before argument, written before the ring code).
 - SPSC ring (M1.5/M1.6): `core::SpscRingView` (over caller memory) and `core::SpscRing` (owning): `try_push`/`try_pop`, zero-copy `try_claim`+`commit` and `try_peek`+`release`, `size_approx`/`empty_approx`/`capacity`; debug-only misuse checks (`core::ThreadOwner`). Unit, edge-case and 8/16-bit counter wrap tests.
 - Coverage builds use `-fprofile-update=atomic` (BL-006).
+- Stress tests (M1.7): `fastbus_stress_spsc_ring`, 18 cases (balanced copy/zero-copy, random jitter, slow consumer, slow producer, pinned × capacity 2/64/4096) with self-checking 64-byte payloads.
+- Coverage gate (M1.8): `linux-coverage` fails below 85 % line coverage of core + platform (`FASTBUS_COVERAGE_PATHS`).
 - `fastbus::core` (M1.1): `StrongType<T, Tag>` and the ID types (`TopicId`, `NodeId`, `PublisherId`, `SequenceNumber`, `TypeId`, `SchemaVersion`), `Duration`/`Timestamp`, `Error`/`ErrorCode`, `Result<T, E>` (std::expected subset), `fail_fast`/`check`/`debug_check` contract helpers, with unit and death tests.
 - Windows-first workflow: `scripts/dev.ps1` (doctor, build, test, asan, tidy, format, lint, bench, check) that enters the VS developer environment automatically.
 - `windows-tidy` preset; CI Windows jobs for MSVC Debug/Release, clang-cl, MSVC ASan and clang-tidy, all via `dev.ps1`.

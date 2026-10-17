@@ -3,7 +3,7 @@
 > Living task tracker for the fastbus project. Updated at the start and end of every work session.
 > Source of truth for scope: `docs/PRD.md`. Source of truth for design: `docs/PLAN.md`.
 >
-> **Current state (2026-10-17):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1–M1.4 green in CI; steps 5–6 (M1.5 ring, M1.6 unit tests) awaiting Windows CI.
+> **Current state (2026-10-17):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1–M1.6 green in CI; steps 7–8 (M1.7 stress tests, M1.8 sanitizers + coverage gate) awaiting Windows CI.
 
 ## 0. How to read this file
 
@@ -277,25 +277,25 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 - [x] Constraints on `T`: `std::is_trivially_copyable_v && std::is_standard_layout_v` (concept), so the same code is valid in shm. — `RingElement` (also: not const/volatile, `alignof(T) <= 64`) and `RingIndex` (unsigned, not bool, always lock-free); compile-time tests in `spsc_ring_layout_test.cpp`
 
 ### M1.5 Ring implementation  — `P0, L`
-- [~] `SpscRingView<T, IndexT>` over caller-provided memory; `SpscRing<T>` owning wrapper (aligned allocation at construction only). — `core/spsc_ring_view.hpp`, `core/spsc_ring.hpp` (one `operator new(align_val_t{64}, nothrow)` in `create`); *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan (unit binary also 20× repeated under TSan), Release (misuse checks compiled out, death tests skipped), coverage, clang-tidy 18, format/length/layering clean; Windows = next CI run*
-- [~] API: `try_push(const T&)`, `try_claim()` → pointer + `commit()` (producer-side zero-copy hook for M2 loans), `try_pop(T&)`, `try_peek()` + `release()` (consumer-side zero-copy), `size_approx()`, `capacity()`, `empty_approx()`. — all implemented; plus `create(memory, capacity, start)` and `required_bytes`/`required_alignment`
-- [~] Debug-only single-producer/single-consumer misuse detection (assert thread-id ownership). — `core/thread_owner.hpp` (binds on first use, `fail_fast` from another thread); also commit-without-claim and release-without-peek
-- [~] Comments at each atomic op referencing the ordering doc. — tags [P1]..[Q2]; memory-ordering.md §12 checklist ticked
+- [x] `SpscRingView<T, IndexT>` over caller-provided memory; `SpscRing<T>` owning wrapper (aligned allocation at construction only). — `core/spsc_ring_view.hpp`, `core/spsc_ring.hpp` (one `operator new(align_val_t{64}, nothrow)` in `create`); *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan (unit binary also 20× repeated under TSan), Release (misuse checks compiled out, death tests skipped), coverage, clang-tidy 18, format/length/layering clean; Windows CI green, owner-confirmed 2026-10-17*
+- [x] API: `try_push(const T&)`, `try_claim()` → pointer + `commit()` (producer-side zero-copy hook for M2 loans), `try_pop(T&)`, `try_peek()` + `release()` (consumer-side zero-copy), `size_approx()`, `capacity()`, `empty_approx()`. — all implemented; plus `create(memory, capacity, start)` and `required_bytes`/`required_alignment`
+- [x] Debug-only single-producer/single-consumer misuse detection (assert thread-id ownership). — `core/thread_owner.hpp` (binds on first use, `fail_fast` from another thread); also commit-without-claim and release-without-peek
+- [x] Comments at each atomic op referencing the ordering doc. — tags [P1]..[Q2]; memory-ordering.md §12 checklist ticked
 
 ### M1.6 Unit tests  — `P0, M`
-- [~] Capacity validation (reject non-power-of-two, zero); empty/full transitions; FIFO order; wrap-around with capacity 2/4/8; claim/commit and peek/release paths; `size_approx` bounds. — `tests/unit/spsc_ring_test.cpp` (also too-small/misaligned memory, 64-byte payloads, move, same-thread producer+consumer, `size_approx ≤ capacity` with a concurrent observer); *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan (unit binary also 20× repeated under TSan), Release (misuse checks compiled out, death tests skipped), coverage, clang-tidy 18, format/length/layering clean; Windows = next CI run*
-- [~] **Wrap-around with `IndexT = uint8_t`/`uint16_t`** in tests to exercise counter overflow cheaply. — `tests/unit/spsc_ring_wrap_test.cpp`: counters start just before the wrap (`create(..., start)`), ≥ 3 full counter wraps, full ring at max capacity across the wrap
-- [~] Death/assert tests for misuse in debug builds (where supported). — 4 death tests; `GTEST_SKIP` in release builds
+- [x] Capacity validation (reject non-power-of-two, zero); empty/full transitions; FIFO order; wrap-around with capacity 2/4/8; claim/commit and peek/release paths; `size_approx` bounds. — `tests/unit/spsc_ring_test.cpp` (also too-small/misaligned memory, 64-byte payloads, move, same-thread producer+consumer, `size_approx ≤ capacity` with a concurrent observer); *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan (unit binary also 20× repeated under TSan), Release (misuse checks compiled out, death tests skipped), coverage, clang-tidy 18, format/length/layering clean; Windows CI green, owner-confirmed 2026-10-17*
+- [x] **Wrap-around with `IndexT = uint8_t`/`uint16_t`** in tests to exercise counter overflow cheaply. — `tests/unit/spsc_ring_wrap_test.cpp`: counters start just before the wrap (`create(..., start)`), ≥ 3 full counter wraps, full ring at max capacity across the wrap
+- [x] Death/assert tests for misuse in debug builds (where supported). — 4 death tests; `GTEST_SKIP` in release builds
 
 ### M1.7 Stress tests  — `P0, L`
-- [ ] 1 producer / 1 consumer, ≥ 1e7 items normal (scaled down under TSan/ASan), payload = 64-byte block filled with a pattern derived from the sequence number; consumer verifies order, no loss/dup, **no torn payloads**.
-- [ ] Parametrize capacity {2, 64, 4096}, random `yield`/`cpu_relax` injection, optional core pinning, duration-bounded (time limit + ctest `TIMEOUT`).
-- [ ] Slow-consumer and slow-producer variants (full/empty regimes).
+- [~] 1 producer / 1 consumer, ≥ 1e7 items normal (scaled down under TSan/ASan), payload = 64-byte block filled with a pattern derived from the sequence number; consumer verifies order, no loss/dup, **no torn payloads**. — `tests/stress/spsc_ring_stress_test.cpp`: 1e7 items in the `Balanced`/`BalancedZeroCopy` regimes (both the copy and the claim/peek APIs), 1/10 under sanitizers and coverage (`FASTBUS_STRESS_REDUCED`), `FASTBUS_STRESS_MULTIPLIER` for soak runs. **Mutation-checked:** publishing before writing the slot → 38 312 out-of-order + 2 482 torn items detected; `[P3]` weakened to `relaxed` → TSan data race on the slot `memcpy`. *local run 2026-10-17 (2-core Linux): GCC 13 Debug 52 s, Release 14 s, ASan 10 s, UBSan 9 s, TSan 17 s for the full suite, clang-tidy 18 clean; Windows = next CI run*
+- [~] Parametrize capacity {2, 64, 4096}, random `yield`/`cpu_relax` injection, optional core pinning, duration-bounded (time limit + ctest `TIMEOUT`). — 18 cases (6 regimes × 3 capacities), `RandomJitter` (xorshift-driven yield/spin on both sides), `Pinned` (producer on CPU 0, consumer on CPU 1; runs unpinned with a note if refused), 30 s internal limit + 120 s ctest timeout per case
+- [~] Slow-consumer and slow-producer variants (full/empty regimes). — `SlowConsumer` (zero-copy, ring mostly full) and `SlowProducer` (copy, ring mostly empty)
 
 ### M1.8 Sanitizers + coverage gate  — `P0, M`
-- [ ] TSan, ASan, UBSan CI jobs run the unit + stress tests (reduced iteration counts).
-- [ ] Activate coverage gate: fail below 85 % for `platform` and `core`.
-- [ ] Record in `known-issues.md`: TSan is blind to cross-process access; ring logic is validated in-process with threads (same code path).
+- [~] TSan, ASan, UBSan CI jobs run the unit + stress tests (reduced iteration counts). — the sanitizer jobs run the whole ctest preset (unit + stress + canary); stress at 1/10 of the items; MSVC ASan (`dev.ps1 asan`) likewise. *local run 2026-10-17 (2-core Linux): GCC 13 Debug 52 s, Release 14 s, ASan 10 s, UBSan 9 s, TSan 17 s for the full suite, clang-tidy 18 clean; Windows = next CI run*
+- [~] Activate coverage gate: fail below 85 % for `platform` and `core`. — `linux-coverage` preset sets `FASTBUS_COVERAGE_FAIL_UNDER=85`; `FASTBUS_COVERAGE_PATHS` limits the measurement to core + platform (later modules join when they reach the bar). Local: **86.6 % lines** (775/895), 89.6 % functions; gate verified to fail (rc=1) when set to 99. `fail_fast` excluded (runs only in aborting death-test children).
+- [~] Record in `known-issues.md`: TSan is blind to cross-process access; ring logic is validated in-process with threads (same code path). — KI-005 updated
 
 ### M1.9 Allocation and micro-benchmarks  — `P1, M`
 - [ ] Counting `operator new/delete` hook test binary: assert zero allocations during N push/pop after setup.
