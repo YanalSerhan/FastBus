@@ -45,7 +45,9 @@ template <RingElement T, std::unsigned_integral IndexT = std::uint64_t>
 class SpscRingView {
 public:
     // Setup (not hot path): validates and initializes the layout inside `memory`.
-    static Result<SpscRingView> create(std::span<std::byte> memory, std::size_t capacity) noexcept;
+    // `start` (default 0) is the initial value of both counters; tests use it to start near the wrap.
+    static Result<SpscRingView> create(std::span<std::byte> memory, std::size_t capacity,
+                                       IndexT start = 0) noexcept;
     static constexpr std::size_t required_bytes(std::size_t capacity) noexcept;
     static constexpr std::size_t required_alignment() noexcept;   // kCacheLineSize
 

@@ -3,7 +3,7 @@
 > Living task tracker for the fastbus project. Updated at the start and end of every work session.
 > Source of truth for scope: `docs/PRD.md`. Source of truth for design: `docs/PLAN.md`.
 >
-> **Current state (2026-10-17):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1–M1.3 green in CI; step 4 (M1.4 layout + memory-ordering doc) awaiting review and Windows CI.
+> **Current state (2026-10-17):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1–M1.4 green in CI; steps 5–6 (M1.5 ring, M1.6 unit tests) awaiting Windows CI.
 
 ## 0. How to read this file
 
@@ -265,27 +265,27 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 - [x] Tests: affinity success where permitted, else `GTEST_SKIP()` with reason (CI containers may forbid it). — `tests/unit/thread_test.cpp` (8 tests) — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, format/length/layering clean; pinning test ran (not skipped) here; Windows (MSVC Debug/Release, clang-cl, MSVC ASan, clang-tidy 19) green in CI, owner-confirmed 2026-10-17*
 
 ### M1.4 Ring layout and ordering design  — `P0, L`
-- [~] `fastbus/core/cache_line.hpp`: `inline constexpr size_t kCacheLine = 64`. — named `kCacheLineSize` (64) plus `kFalseSharingRange` (128) per ADR-009; *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, coverage, clang-tidy 18, format/length/layering clean; Windows = next CI run*
-- [~] `SpscRingLayout<IndexT>` (POD, placeable in shared memory later): `alignas(kCacheLine) std::atomic<IndexT> head; alignas(kCacheLine) std::atomic<IndexT> tail;` plus producer-local `cached_head` and consumer-local `cached_tail` on their own lines; capacity power of two; monotonic indices (mask for slot index); `static_assert` on `is_always_lock_free`, sizes, offsets. — `fastbus/core/spsc_ring_layout.hpp`: `SpscRingHeader<IndexT>` (4 × 128-byte blocks: tail | cached_head + mask | head | cached_tail + mask; the mask is stored per side so neither hot path reads the other side's line) + `SpscRingLayout<T, IndexT>`; offsets/size/alignment static_asserted; *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, coverage, clang-tidy 18, format/length/layering clean; Windows = next CI run*
-- [~] Document the rule that capacity must be ≤ half the index range for monotonic counters (so `tail - head` is unambiguous when counters wrap). — `docs/memory-ordering.md` §9, enforced by `SpscRingLayout::valid_capacity`, tested for `uint8_t`..`uint64_t`
-- [~] Write `docs/memory-ordering.md` **before** implementing: — written 2026-10-17, before any ring code; awaiting owner review
+- [x] `fastbus/core/cache_line.hpp`: `inline constexpr size_t kCacheLine = 64`. — named `kCacheLineSize` (64) plus `kFalseSharingRange` (128) per ADR-009; *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, coverage, clang-tidy 18, format/length/layering clean; Windows CI green, owner-confirmed 2026-10-17*
+- [x] `SpscRingLayout<IndexT>` (POD, placeable in shared memory later): `alignas(kCacheLine) std::atomic<IndexT> head; alignas(kCacheLine) std::atomic<IndexT> tail;` plus producer-local `cached_head` and consumer-local `cached_tail` on their own lines; capacity power of two; monotonic indices (mask for slot index); `static_assert` on `is_always_lock_free`, sizes, offsets. — `fastbus/core/spsc_ring_layout.hpp`: `SpscRingHeader<IndexT>` (4 × 128-byte blocks: tail | cached_head + mask | head | cached_tail + mask; the mask is stored per side so neither hot path reads the other side's line) + `SpscRingLayout<T, IndexT>`; offsets/size/alignment static_asserted; *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, coverage, clang-tidy 18, format/length/layering clean; Windows CI green, owner-confirmed 2026-10-17*
+- [x] Document the rule that capacity must be ≤ half the index range for monotonic counters (so `tail - head` is unambiguous when counters wrap). — `docs/memory-ordering.md` §9, enforced by `SpscRingLayout::valid_capacity`, tested for `uint8_t`..`uint64_t`
+- [x] Write `docs/memory-ordering.md` **before** implementing: — written 2026-10-17, before any ring code; approved by the owner 2026-10-17
   - Slot ownership: slots in `[head, tail)` owned by consumer, the rest by producer.
   - Producer: write slot data → `tail.store(release)`. Consumer: `tail.load(acquire)` → read slot → `head.store(release)`. Producer: `head.load(acquire)` before reusing a slot.
   - Why `relaxed` is enough for own-index loads, why `seq_cst` is unnecessary, why no standalone fences (TSan doesn't model `atomic_thread_fence` reliably).
   - Why cached indices reduce cache-line ping-pong and why they remain correct (staleness only makes the ring look fuller/emptier, never wrong).
   - Mermaid timeline diagram of the two threads.
-- [~] Constraints on `T`: `std::is_trivially_copyable_v && std::is_standard_layout_v` (concept), so the same code is valid in shm. — `RingElement` (also: not const/volatile, `alignof(T) <= 64`) and `RingIndex` (unsigned, not bool, always lock-free); compile-time tests in `spsc_ring_layout_test.cpp`
+- [x] Constraints on `T`: `std::is_trivially_copyable_v && std::is_standard_layout_v` (concept), so the same code is valid in shm. — `RingElement` (also: not const/volatile, `alignof(T) <= 64`) and `RingIndex` (unsigned, not bool, always lock-free); compile-time tests in `spsc_ring_layout_test.cpp`
 
 ### M1.5 Ring implementation  — `P0, L`
-- [ ] `SpscRingView<T, IndexT>` over caller-provided memory; `SpscRing<T>` owning wrapper (aligned allocation at construction only).
-- [ ] API: `try_push(const T&)`, `try_claim()` → pointer + `commit()` (producer-side zero-copy hook for M2 loans), `try_pop(T&)`, `try_peek()` + `release()` (consumer-side zero-copy), `size_approx()`, `capacity()`, `empty_approx()`.
-- [ ] Debug-only single-producer/single-consumer misuse detection (assert thread-id ownership).
-- [ ] Comments at each atomic op referencing the ordering doc.
+- [~] `SpscRingView<T, IndexT>` over caller-provided memory; `SpscRing<T>` owning wrapper (aligned allocation at construction only). — `core/spsc_ring_view.hpp`, `core/spsc_ring.hpp` (one `operator new(align_val_t{64}, nothrow)` in `create`); *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan (unit binary also 20× repeated under TSan), Release (misuse checks compiled out, death tests skipped), coverage, clang-tidy 18, format/length/layering clean; Windows = next CI run*
+- [~] API: `try_push(const T&)`, `try_claim()` → pointer + `commit()` (producer-side zero-copy hook for M2 loans), `try_pop(T&)`, `try_peek()` + `release()` (consumer-side zero-copy), `size_approx()`, `capacity()`, `empty_approx()`. — all implemented; plus `create(memory, capacity, start)` and `required_bytes`/`required_alignment`
+- [~] Debug-only single-producer/single-consumer misuse detection (assert thread-id ownership). — `core/thread_owner.hpp` (binds on first use, `fail_fast` from another thread); also commit-without-claim and release-without-peek
+- [~] Comments at each atomic op referencing the ordering doc. — tags [P1]..[Q2]; memory-ordering.md §12 checklist ticked
 
 ### M1.6 Unit tests  — `P0, M`
-- [ ] Capacity validation (reject non-power-of-two, zero); empty/full transitions; FIFO order; wrap-around with capacity 2/4/8; claim/commit and peek/release paths; `size_approx` bounds.
-- [ ] **Wrap-around with `IndexT = uint8_t`/`uint16_t`** in tests to exercise counter overflow cheaply.
-- [ ] Death/assert tests for misuse in debug builds (where supported).
+- [~] Capacity validation (reject non-power-of-two, zero); empty/full transitions; FIFO order; wrap-around with capacity 2/4/8; claim/commit and peek/release paths; `size_approx` bounds. — `tests/unit/spsc_ring_test.cpp` (also too-small/misaligned memory, 64-byte payloads, move, same-thread producer+consumer, `size_approx ≤ capacity` with a concurrent observer); *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan (unit binary also 20× repeated under TSan), Release (misuse checks compiled out, death tests skipped), coverage, clang-tidy 18, format/length/layering clean; Windows = next CI run*
+- [~] **Wrap-around with `IndexT = uint8_t`/`uint16_t`** in tests to exercise counter overflow cheaply. — `tests/unit/spsc_ring_wrap_test.cpp`: counters start just before the wrap (`create(..., start)`), ≥ 3 full counter wraps, full ring at max capacity across the wrap
+- [~] Death/assert tests for misuse in debug builds (where supported). — 4 death tests; `GTEST_SKIP` in release builds
 
 ### M1.7 Stress tests  — `P0, L`
 - [ ] 1 producer / 1 consumer, ≥ 1e7 items normal (scaled down under TSan/ASan), payload = 64-byte block filled with a pattern derived from the sequence number; consumer verifies order, no loss/dup, **no torn payloads**.

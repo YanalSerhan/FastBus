@@ -1,7 +1,8 @@
 # Memory ordering of the SPSC ring
 
-> **Status:** written in M1.4, **before** the ring implementation (M1.5). Every atomic operation in
-> `spsc_ring.hpp` carries a tag (`[P1]`, `[C3]`, …) that points to a row of §4. If the code and this
+> **Status:** written in M1.4, **before** the ring implementation, and approved by the owner
+> (2026-10-17). The M1.5 code in `spsc_ring_view.hpp` was checked against §12. Every atomic operation in
+> `spsc_ring_view.hpp` carries a tag (`[P1]`, `[C3]`, …) that points to a row of §4. If the code and this
 > document disagree, the code is wrong until this document is updated and re-reviewed.
 >
 > Scope: `SpscRingView<T, IndexT>` from [PRD_spsc_ring.md](PRD_spsc_ring.md), one producer thread,
@@ -70,8 +71,9 @@ threads are always ordered.
 | **Q2** | any | `t = tail.load()` in `size_approx` | `relaxed` | Ordered after [Q1] by [Q1]'s acquire (§8). |
 
 Claim/commit and peek/release use exactly the same operations: `try_claim()` = [P1] + [P2] and
-returns a pointer to the slot instead of writing it; `commit()` = [P3]. `try_peek()` = [C1] + [C2];
-`release()` = [C3]. No other atomic accesses exist on the hot path. Debug-only misuse checks
+returns a pointer to the slot instead of writing it; `commit()` = [P1] + [P3]. `try_peek()` = [C1] + [C2];
+`release()` = [C1] + [C3]. (`commit`/`release` re-read their own counter with [P1]/[C1] so no
+state has to be kept between the claim and the commit.) No other atomic accesses exist on the hot path. Debug-only misuse checks
 (owner thread ids, M1.5) use their own `relaxed` atomics and are not part of the protocol.
 
 ## 5. Happens-before arguments
@@ -239,11 +241,11 @@ sequenceDiagram
     Note over P,C: C3 synchronizes-with P2, so the slot read happens-before the rewrite
 ```
 
-## 12. Review checklist for M1.5
+## 12. Review checklist for M1.5 (checked 2026-10-17 against `spsc_ring_view.hpp`)
 
-- [ ] Every atomic access in `spsc_ring.hpp` has a tag from §4 and uses exactly that order.
-- [ ] No atomic access exists that is not in §4 (except debug-only owner checks).
-- [ ] `head` is stored only by consumer code paths and `tail` only by producer code paths.
-- [ ] The slot is written strictly before [P3] and read strictly before [C3].
-- [ ] `cached_head` / `cached_tail` are only refreshed by [P2] / [C2].
-- [ ] No `std::atomic_thread_fence`, no `seq_cst`, no `compare_exchange` in the ring.
+- [x] Every atomic access in `spsc_ring_view.hpp` has a tag from §4 and uses exactly that order.
+- [x] No atomic access exists that is not in §4 (except debug-only owner checks in `thread_owner.hpp`).
+- [x] `head` is stored only by consumer code paths and `tail` only by producer code paths.
+- [x] The slot is written strictly before [P3] and read strictly before [C3].
+- [x] `cached_head` / `cached_tail` are only refreshed by [P2] / [C2].
+- [x] No `std::atomic_thread_fence`, no `seq_cst`, no `compare_exchange` in the ring (the only CAS is the debug-only `ThreadOwner`).
