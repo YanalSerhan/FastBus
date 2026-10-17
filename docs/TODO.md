@@ -3,7 +3,7 @@
 > Living task tracker for the fastbus project. Updated at the start and end of every work session.
 > Source of truth for scope: `docs/PRD.md`. Source of truth for design: `docs/PLAN.md`.
 >
-> **Current state (2026-10-16):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1 green in CI.
+> **Current state (2026-10-17):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1 + M1.2 green in CI; step 3 (M1.3 threads) awaiting Windows CI.
 
 ## 0. How to read this file
 
@@ -255,14 +255,14 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 - [x] Tests: compile-time (`static_assert(!std::is_convertible_v<...>)`), arithmetic, hashing, `Result` monad-ish helpers. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl/Windows tidy green in CI*
 
 ### M1.2 Platform: clocks  — `P0, M`
-- [~] `Clock` interface (+ `SystemMonotonicClock`, `WallClock`) returning strong `Timestamp`. Windows impl via `QueryPerformanceCounter`/`GetSystemTimePreciseAsFileTime`; POSIX via `clock_gettime(CLOCK_MONOTONIC / CLOCK_REALTIME)`. Document that the monotonic clock is system-wide (needed for cross-process latency). — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows backend = next CI run*
-- [~] `ManualClock` (test/sim clock, advance explicitly) for ADR-007. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows backend = next CI run*
-- [~] `sleep_until` / `sleep_for` helpers + spin-wait helper; document Windows timer-resolution caveat (`timeBeginPeriod`) and make it an explicit opt-in utility. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows backend = next CI run*
-- [~] Tests: monotonic non-decreasing across 1e6 calls, measured resolution/overhead reported (not asserted tightly), `ManualClock` determinism. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows backend = next CI run*
+- [x] `Clock` interface (+ `SystemMonotonicClock`, `WallClock`) returning strong `Timestamp`. Windows impl via `QueryPerformanceCounter`/`GetSystemTimePreciseAsFileTime`; POSIX via `clock_gettime(CLOCK_MONOTONIC / CLOCK_REALTIME)`. Document that the monotonic clock is system-wide (needed for cross-process latency). — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows (MSVC Debug/Release, clang-cl, MSVC ASan, clang-tidy 19) green in CI, owner-confirmed 2026-10-17*
+- [x] `ManualClock` (test/sim clock, advance explicitly) for ADR-007. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows (MSVC Debug/Release, clang-cl, MSVC ASan, clang-tidy 19) green in CI, owner-confirmed 2026-10-17*
+- [x] `sleep_until` / `sleep_for` helpers + spin-wait helper; document Windows timer-resolution caveat (`timeBeginPeriod`) and make it an explicit opt-in utility. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows (MSVC Debug/Release, clang-cl, MSVC ASan, clang-tidy 19) green in CI, owner-confirmed 2026-10-17*
+- [x] Tests: monotonic non-decreasing across 1e6 calls, measured resolution/overhead reported (not asserted tightly), `ManualClock` determinism. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows (MSVC Debug/Release, clang-cl, MSVC ASan, clang-tidy 19) green in CI, owner-confirmed 2026-10-17*
 
 ### M1.3 Platform: thread utilities  — `P0, S`
-- [~] `cpu_relax()` (`_mm_pause` / `YieldProcessor` / ARM `yield`), `set_thread_affinity(core)`, `set_thread_name`, `current_thread_id`, `hardware_concurrency`. — *`cpu_relax()` done in M1.2 (needed by the spin-wait helper); affinity/name/id/concurrency follow in M1.3*
-- [ ] Tests: affinity success where permitted, else `GTEST_SKIP()` with reason (CI containers may forbid it).
+- [~] `cpu_relax()` (`_mm_pause` / `YieldProcessor` / ARM `yield`), `set_thread_affinity(core)`, `set_thread_name`, `current_thread_id`, `hardware_concurrency`. — *`cpu_relax()` in M1.2; rest in `fastbus/platform/thread.hpp` as `pin_current_thread` / `unpin_current_thread` / `set_current_thread_name` / `current_thread_name` / `current_thread_id` / `current_cpu` / `hardware_concurrency`; local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, format/length/layering clean; pinning test ran (not skipped) here; Windows backend = next CI run*
+- [~] Tests: affinity success where permitted, else `GTEST_SKIP()` with reason (CI containers may forbid it). — `tests/unit/thread_test.cpp` (8 tests) — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, format/length/layering clean; pinning test ran (not skipped) here; Windows backend = next CI run*
 
 ### M1.4 Ring layout and ordering design  — `P0, L`
 - [ ] `fastbus/core/cache_line.hpp`: `inline constexpr size_t kCacheLine = 64`.
