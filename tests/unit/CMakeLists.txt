@@ -26,3 +26,11 @@ fastbus_add_test(fastbus_unit_spsc_ring_layout
     SOURCES spsc_ring_layout_test.cpp
     DEPS fastbus::core
     LABELS unit)
+
+fastbus_add_test(fastbus_unit_spsc_ring
+    SOURCES
+        spsc_ring_test.cpp
+        spsc_ring_wrap_test.cpp
+    DEPS fastbus::core
+    LABELS unit
+    TIMEOUT 120)
