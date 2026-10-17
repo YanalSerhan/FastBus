@@ -1,6 +1,6 @@
 # PRD — Lock-free SPSC ring
 
-> **Status: approved (2026-10-17).** Updated at the end of M1 to match what was built.
+> **Status: approved (2026-10-17); updated at the end of M1 (2026-10-17) to match what was built.** Code: `core/spsc_ring_layout.hpp` (layout), `core/spsc_ring_view.hpp` (`SpscRingView`), `core/spsc_ring.hpp` (`SpscRing`, derives from the view; `view()` returns it). Measured against §8: see [benchmarks.md](benchmarks.md) and the [M1 report](milestones/M1-report.md).
 
 ## 1. Purpose
 

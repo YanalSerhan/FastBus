@@ -13,6 +13,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 - Coverage builds use `-fprofile-update=atomic` (BL-006).
 - Stress tests (M1.7): `fastbus_stress_spsc_ring`, 18 cases (balanced copy/zero-copy, random jitter, slow consumer, slow producer, pinned × capacity 2/64/4096) with self-checking 64-byte payloads.
 - Coverage gate (M1.8): `linux-coverage` fails below 85 % line coverage of core + platform (`FASTBUS_COVERAGE_PATHS`).
+- Allocation test (M1.9): `fastbus_alloc_spsc_ring` (counting global `operator new`/`delete`): zero allocations in ring operations, exactly one in `create`.
+- Benchmarks (M1.9): `fastbus_bm_spsc_ring` vs `MutexQueue` baseline (`benchmarks/baseline_mutex_queue.hpp`); CI runs it at smoke length; `dev.ps1 bench` runs every `fastbus_bm_*`.
+- M1 milestone report (`docs/milestones/M1-report.md`) and M1 interview Q&As.
+
+### Fixed
+- `fastbus_add_test` silently dropped extra labels; one label per binary is now enforced (BL-008).
 - `fastbus::core` (M1.1): `StrongType<T, Tag>` and the ID types (`TopicId`, `NodeId`, `PublisherId`, `SequenceNumber`, `TypeId`, `SchemaVersion`), `Duration`/`Timestamp`, `Error`/`ErrorCode`, `Result<T, E>` (std::expected subset), `fail_fast`/`check`/`debug_check` contract helpers, with unit and death tests.
 - Windows-first workflow: `scripts/dev.ps1` (doctor, build, test, asan, tidy, format, lint, bench, check) that enters the VS developer environment automatically.
 - `windows-tidy` preset; CI Windows jobs for MSVC Debug/Release, clang-cl, MSVC ASan and clang-tidy, all via `dev.ps1`.

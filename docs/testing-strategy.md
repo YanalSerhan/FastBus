@@ -6,6 +6,7 @@
 |---|---|---|---|---|
 | Unit | `tests/unit` | `unit` | logic errors, edge cases | M0 |
 | Stress | `tests/stress` | `stress` | races, ordering bugs, torn payloads | M1 |
+| Allocation | `tests/alloc` | `alloc` | heap allocations on hot paths (counting `operator new`, one binary per component) | M1 |
 | Integration (cross-process) | `tests/integration` | `integration` | shm/process/socket behavior, crashes | M2 |
 | Golden | `tests/golden` | `golden` | generator output drift | M4 |
 | Chaos | `tests/chaos` | `chaos` | invariant violations under faults | M8 |
@@ -22,7 +23,7 @@ Rules: tests first or alongside; timing-dependent tests use virtual clocks; anyt
 - Payloads are self-checking: every word is derived from the sequence number, so the consumer can tell a lost/duplicated item (wrong sequence) from a torn one (right sequence, inconsistent words).
 - Item counts: full in normal builds, 1/10 under sanitizers and coverage (`FASTBUS_STRESS_REDUCED`), scalable with `-DFASTBUS_STRESS_MULTIPLIER=N` for local soak runs.
 - A stress test is only trusted after a **mutation check**: deliberately break the code under test and confirm the test (or TSan) fails. Results are recorded in TODO.md next to the test.
-- Quick local loop: `ctest --preset <p> -L unit`; full: `ctest --preset <p>`.
+- Quick local loop: `ctest --preset <p> -L "unit|alloc"`; full: `ctest --preset <p>`. Each test binary has exactly one label (BL-008).
 
 ## Coverage gate (from M1.8)
 
