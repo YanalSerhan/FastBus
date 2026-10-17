@@ -37,24 +37,30 @@ using BlockPadding = std::array<std::byte, kFalseSharingRange - Used>;
 /// Constructed once in place by the ring's create(); never copied or moved.
 template <RingIndex IndexT>
 struct alignas(kCacheLineSize) SpscRingHeader {
-    constexpr explicit SpscRingHeader(IndexT mask) noexcept
-        : producer_mask(mask), consumer_mask(mask) {}
+    /// `start` is the initial value of both counters (0 normally; tests start near the wrap point).
+    constexpr explicit SpscRingHeader(IndexT mask, IndexT start = 0) noexcept
+        : tail(start),
+          cached_head(start),
+          producer_mask(mask),
+          head(start),
+          cached_tail(start),
+          consumer_mask(mask) {}
 
     // Block 0: written by the producer on every push [P3], read by the consumer on refresh [C2].
-    std::atomic<IndexT> tail{0};
+    std::atomic<IndexT> tail;
     detail::BlockPadding<sizeof(std::atomic<IndexT>)> tail_padding{};
 
     // Block 1: producer-only (plain fields, refreshed by [P2]).
-    IndexT cached_head{0};
+    IndexT cached_head;
     IndexT producer_mask;
     detail::BlockPadding<2 * sizeof(IndexT)> producer_padding{};
 
     // Block 2: written by the consumer on every pop [C3], read by the producer on refresh [P2].
-    std::atomic<IndexT> head{0};
+    std::atomic<IndexT> head;
     detail::BlockPadding<sizeof(std::atomic<IndexT>)> head_padding{};
 
     // Block 3: consumer-only (plain fields, refreshed by [C2]).
-    IndexT cached_tail{0};
+    IndexT cached_tail;
     IndexT consumer_mask;
     detail::BlockPadding<2 * sizeof(IndexT)> consumer_padding{};
 };
