@@ -13,8 +13,9 @@ target_link_libraries(fastbus_platform_libs INTERFACE Threads::Threads)
 
 if(WIN32)
     set(FASTBUS_PLATFORM "windows")
-    # Winsock for the UDP transport (M6); WIN32_LEAN_AND_MEAN/NOMINMAX keep <windows.h> sane.
-    target_link_libraries(fastbus_platform_libs INTERFACE ws2_32)
+    # ws2_32: Winsock for the UDP transport (M6). winmm: timeBeginPeriod (HighResolutionTimerScope).
+    # WIN32_LEAN_AND_MEAN/NOMINMAX keep <windows.h> sane.
+    target_link_libraries(fastbus_platform_libs INTERFACE ws2_32 winmm)
     target_compile_definitions(fastbus_platform_libs INTERFACE
         WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
 else()
