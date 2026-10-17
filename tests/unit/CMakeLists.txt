@@ -21,3 +21,8 @@ fastbus_add_test(fastbus_unit_thread
     SOURCES thread_test.cpp
     DEPS fastbus::platform
     LABELS unit)
+
+fastbus_add_test(fastbus_unit_spsc_ring_layout
+    SOURCES spsc_ring_layout_test.cpp
+    DEPS fastbus::core
+    LABELS unit)
