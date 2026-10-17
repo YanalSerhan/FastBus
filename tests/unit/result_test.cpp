@@ -64,7 +64,7 @@ TEST(Result, ArrowAccessesMembers) {
         int x;
         int y;
     };
-    Result<Point> r = Point{1, 2};
+    Result<Point> r = Point{.x = 1, .y = 2};
     EXPECT_EQ(r->x + r->y, 3);
     r->x = 10;
     EXPECT_EQ(r.value().x, 10);
