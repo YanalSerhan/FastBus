@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 ## [Unreleased]
 
 ### Added
+- Time (M1.2): `fastbus::core::Clock` with `SystemMonotonicClock` (QPC / `CLOCK_MONOTONIC`), `WallClock`, thread-safe `ManualClock`; `sleep_for` and `precise_sleep_until` (sleep, then spin); `platform::cpu_relax()`, `platform::HighResolutionTimerScope` (opt-in `timeBeginPeriod`). `check_layering.py` now rejects std clocks outside `src/platform/` and `benchmarks/` (ADR-007).
 - `fastbus::core` (M1.1): `StrongType<T, Tag>` and the ID types (`TopicId`, `NodeId`, `PublisherId`, `SequenceNumber`, `TypeId`, `SchemaVersion`), `Duration`/`Timestamp`, `Error`/`ErrorCode`, `Result<T, E>` (std::expected subset), `fail_fast`/`check`/`debug_check` contract helpers, with unit and death tests.
 - Windows-first workflow: `scripts/dev.ps1` (doctor, build, test, asan, tidy, format, lint, bench, check) that enters the VS developer environment automatically.
 - `windows-tidy` preset; CI Windows jobs for MSVC Debug/Release, clang-cl, MSVC ASan and clang-tidy, all via `dev.ps1`.

@@ -1,6 +1,6 @@
 # M1 — Platform layer + lock-free SPSC ring: plan
 
-> **Status: approved 2026-10-17, in progress.** The plan, [PRD_spsc_ring.md](../PRD_spsc_ring.md), [ADR-001](../adr/ADR-001-error-handling.md), [ADR-007](../adr/ADR-007-clock-injection.md), [ADR-009](../adr/ADR-009-cache-line.md) and the open-question answers below were approved by the owner. Step 1 (M1.1) done.
+> **Status: approved 2026-10-17, in progress.** The plan, [PRD_spsc_ring.md](../PRD_spsc_ring.md), [ADR-001](../adr/ADR-001-error-handling.md), [ADR-007](../adr/ADR-007-clock-injection.md), [ADR-009](../adr/ADR-009-cache-line.md) and the open-question answers below were approved by the owner. Steps 1 (M1.1) and 2 (M1.2) done.
 
 ## Scope
 
@@ -34,13 +34,14 @@ Strong types and `Result<T, E>`; clocks (monotonic, wall, manual); thread utilit
 ## Files
 
 ```
-include/fastbus/core/      strong_type.hpp  ids.hpp  time.hpp  result.hpp  error.hpp
-                           cache_line.hpp  spsc_ring_layout.hpp  spsc_ring.hpp
-include/fastbus/platform/  clock.hpp  thread.hpp
-src/core/                  error.cpp
-src/platform/              clock_common.cpp            (ManualClock, shared helpers)
-src/platform/windows/      clock.cpp  thread.cpp       (QueryPerformanceCounter, SetThreadAffinityMask, ...)
-src/platform/posix/        clock.cpp  thread.cpp       (clock_gettime, pthread_setaffinity_np, ...)
+include/fastbus/core/      strong_type.hpp  ids.hpp  time.hpp  result.hpp  error.hpp  assert.hpp
+                           clock.hpp  sleep.hpp  cache_line.hpp  spsc_ring_layout.hpp  spsc_ring.hpp
+include/fastbus/platform/  time_source.hpp  cpu.hpp  thread.hpp
+src/core/                  assert.cpp  error.cpp  sleep.cpp
+src/platform/windows/      time_source.cpp  thread.cpp  (QueryPerformanceCounter, waitable timer, affinity, ...)
+src/platform/posix/        time_source.cpp  thread.cpp  (clock_gettime, nanosleep, pthread_setaffinity_np, ...)
+
+Note: `Clock` moved from platform to core during M1.2 (layering); see the ADR-007 amendment.
 tests/unit/                strong_type_test.cpp  result_test.cpp  time_test.cpp  clock_test.cpp
                            thread_test.cpp  spsc_ring_test.cpp  spsc_ring_wrap_test.cpp
 tests/stress/              spsc_ring_stress_test.cpp

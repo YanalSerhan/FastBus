@@ -3,7 +3,7 @@
 > Living task tracker for the fastbus project. Updated at the start and end of every work session.
 > Source of truth for scope: `docs/PRD.md`. Source of truth for design: `docs/PLAN.md`.
 >
-> **Current state (2026-10-16):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); step 1 (M1.1) done locally, awaiting CI.
+> **Current state (2026-10-16):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1 green in CI.
 
 ## 0. How to read this file
 
@@ -249,19 +249,19 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 - [x] ADR-001, ADR-007, ADR-009 written. → *accepted 2026-10-17*
 
 ### M1.1 Strong types and error handling  — `P0, M`
-- [~] `fastbus/core/strong_type.hpp` (tag-based, explicit ctor, `value()`, comparisons, hash) + `TopicId, NodeId, PublisherId, SequenceNumber, TypeId, SchemaVersion`. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl = next CI run*
-- [~] `Timestamp` (int64 ns since clock epoch) and `Duration` strong types; arithmetic only between valid combos (`Timestamp - Timestamp = Duration`). — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl = next CI run*
-- [~] `Result<T, E>` + `Error` (code enum + static message; no allocation); `[[nodiscard]]`. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl = next CI run*
-- [~] Tests: compile-time (`static_assert(!std::is_convertible_v<...>)`), arithmetic, hashing, `Result` monad-ish helpers. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl = next CI run*
+- [x] `fastbus/core/strong_type.hpp` (tag-based, explicit ctor, `value()`, comparisons, hash) + `TopicId, NodeId, PublisherId, SequenceNumber, TypeId, SchemaVersion`. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl/Windows tidy green in CI*
+- [x] `Timestamp` (int64 ns since clock epoch) and `Duration` strong types; arithmetic only between valid combos (`Timestamp - Timestamp = Duration`). — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl/Windows tidy green in CI*
+- [x] `Result<T, E>` + `Error` (code enum + static message; no allocation); `[[nodiscard]]`. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl/Windows tidy green in CI*
+- [x] Tests: compile-time (`static_assert(!std::is_convertible_v<...>)`), arithmetic, hashing, `Result` monad-ish helpers. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy, 92 % line coverage; MSVC/clang-cl/Windows tidy green in CI*
 
 ### M1.2 Platform: clocks  — `P0, M`
-- [ ] `Clock` interface (+ `SystemMonotonicClock`, `WallClock`) returning strong `Timestamp`. Windows impl via `QueryPerformanceCounter`/`GetSystemTimePreciseAsFileTime`; POSIX via `clock_gettime(CLOCK_MONOTONIC / CLOCK_REALTIME)`. Document that the monotonic clock is system-wide (needed for cross-process latency).
-- [ ] `ManualClock` (test/sim clock, advance explicitly) for ADR-007.
-- [ ] `sleep_until` / `sleep_for` helpers + spin-wait helper; document Windows timer-resolution caveat (`timeBeginPeriod`) and make it an explicit opt-in utility.
-- [ ] Tests: monotonic non-decreasing across 1e6 calls, measured resolution/overhead reported (not asserted tightly), `ManualClock` determinism.
+- [~] `Clock` interface (+ `SystemMonotonicClock`, `WallClock`) returning strong `Timestamp`. Windows impl via `QueryPerformanceCounter`/`GetSystemTimePreciseAsFileTime`; POSIX via `clock_gettime(CLOCK_MONOTONIC / CLOCK_REALTIME)`. Document that the monotonic clock is system-wide (needed for cross-process latency). — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows backend = next CI run*
+- [~] `ManualClock` (test/sim clock, advance explicitly) for ADR-007. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows backend = next CI run*
+- [~] `sleep_until` / `sleep_for` helpers + spin-wait helper; document Windows timer-resolution caveat (`timeBeginPeriod`) and make it an explicit opt-in utility. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows backend = next CI run*
+- [~] Tests: monotonic non-decreasing across 1e6 calls, measured resolution/overhead reported (not asserted tightly), `ManualClock` determinism. — *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, 30× repeat stable; Windows backend = next CI run*
 
 ### M1.3 Platform: thread utilities  — `P0, S`
-- [ ] `cpu_relax()` (`_mm_pause` / `YieldProcessor` / ARM `yield`), `set_thread_affinity(core)`, `set_thread_name`, `current_thread_id`, `hardware_concurrency`.
+- [~] `cpu_relax()` (`_mm_pause` / `YieldProcessor` / ARM `yield`), `set_thread_affinity(core)`, `set_thread_name`, `current_thread_id`, `hardware_concurrency`. — *`cpu_relax()` done in M1.2 (needed by the spin-wait helper); affinity/name/id/concurrency follow in M1.3*
 - [ ] Tests: affinity success where permitted, else `GTEST_SKIP()` with reason (CI containers may forbid it).
 
 ### M1.4 Ring layout and ordering design  — `P0, L`

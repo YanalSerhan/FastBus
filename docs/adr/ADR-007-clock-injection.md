@@ -22,10 +22,12 @@ If modules call `std::chrono::steady_clock::now()` directly, none of this is tes
 
 ## Decision
 
-Option 1, with a hot-path escape hatch:
+Option 1, with a hot-path escape hatch.
+
+**Amendment (2026-10-17, during M1.2):** `Clock` and its implementations live in **`fastbus::core`**, not `fastbus::platform`. `Clock::now()` returns `core::Timestamp`, and the approved layering forbids `platform` from including `core`. So `platform` exposes only raw OS reads as `int64_t` nanoseconds (`fastbus/platform/time_source.hpp`), and `core` wraps them in the strong types (`fastbus/core/clock.hpp`). The interface is otherwise unchanged:
 
 ```cpp
-namespace fastbus::platform {
+namespace fastbus::core {   // (originally proposed as fastbus::platform)
 class Clock {
 public:
     virtual ~Clock() = default;
@@ -38,7 +40,7 @@ class ManualClock          final : public Clock;  // tests/simulation: set()/adv
 ```
 
 - `Timestamp` is a strong type holding nanoseconds since the clock's epoch, as `int64_t` (ADR-001 / M1.1).
-- Modules **take `Clock&` in their constructor** and never call `std::chrono::*_clock::now()`. A CI grep (added to `scripts/check_layering.py` in M1.2) fails if `steady_clock`, `system_clock` or `high_resolution_clock` appears outside `src/platform/`.
+- Modules **take `Clock&` in their constructor** and never call `std::chrono::*_clock::now()`. A CI check in `scripts/check_layering.py` fails if `steady_clock`, `system_clock` or `high_resolution_clock` appears outside `src/platform/` and `benchmarks/` (implemented in M1.2; tests/ are checked too).
 - Hot loops that need a timestamp per message can use a concept-constrained template. That is decided per case and recorded in `design-decisions.md`; no such case exists in M1.
 - `SystemMonotonicClock` is documented as system-wide on both OSes (QPC and `CLOCK_MONOTONIC` are), which cross-process latency relies on.
 
