@@ -14,7 +14,9 @@ if(FASTBUS_COVERAGE)
     if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" OR MSVC)
         message(FATAL_ERROR "FASTBUS_COVERAGE requires GCC or Clang")
     endif()
-    target_compile_options(fastbus_coverage INTERFACE --coverage -O0 -g)
+    # -fprofile-update=atomic: gcov counters are plain increments by default, so code run by two
+    # threads at once (ring tests) corrupts them into negative hit counts that gcovr rejects.
+    target_compile_options(fastbus_coverage INTERFACE --coverage -fprofile-update=atomic -O0 -g)
     target_link_options(fastbus_coverage INTERFACE --coverage)
 
     find_program(FASTBUS_UV uv)
