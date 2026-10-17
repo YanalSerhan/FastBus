@@ -57,6 +57,12 @@ function(fastbus_add_test name)
     _fastbus_common(${name})
     # PRE_TEST discovery: listing tests at ctest time avoids running sanitized binaries at
     # build time and works for cross-compiles.
+    # gtest_discover_tests flattens PROPERTIES into one list, so a second label would become a
+    # bogus property name and be dropped silently (BL-008). One label per test binary.
+    list(LENGTH ARG_LABELS _label_count)
+    if(_label_count GREATER 1)
+        message(FATAL_ERROR "fastbus_add_test(${name}): one label per test binary, got '${ARG_LABELS}'")
+    endif()
     gtest_discover_tests(${name}
         DISCOVERY_MODE PRE_TEST
         PROPERTIES LABELS "${ARG_LABELS}" TIMEOUT ${ARG_TIMEOUT})
