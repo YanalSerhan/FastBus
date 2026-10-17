@@ -20,12 +20,12 @@ constexpr std::int64_t kFileTimeToUnixEpoch = 116'444'736'000'000'000;
 
 std::int64_t qpc_frequency() noexcept {
     // Fixed at boot; reading it once is documented as safe. Function-local static: thread-safe.
-    static const std::int64_t frequency = [] {
+    static const std::int64_t kFrequency = [] {
         LARGE_INTEGER f{};
         QueryPerformanceFrequency(&f);
         return static_cast<std::int64_t>(f.QuadPart);
     }();
-    return frequency;
+    return kFrequency;
 }
 
 }  // namespace
@@ -82,7 +82,8 @@ HighResolutionTimerScope::HighResolutionTimerScope() noexcept
 
 HighResolutionTimerScope::~HighResolutionTimerScope() {
     if (active_) {
-        timeEndPeriod(1);
+        // Nothing useful to do if restoring the resolution fails; we are in a destructor.
+        static_cast<void>(timeEndPeriod(1));
     }
 }
 
