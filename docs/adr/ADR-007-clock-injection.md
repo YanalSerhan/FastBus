@@ -1,6 +1,6 @@
 # ADR-007: Injectable time
 
-- **Status:** proposed — awaiting owner approval (M1.0)
+- **Status:** accepted (owner approval 2026-10-17)
 - **Date:** 2026-10-16
 - **Deciders:** Yanal Serhan
 

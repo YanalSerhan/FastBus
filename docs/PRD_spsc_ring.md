@@ -1,6 +1,6 @@
 # PRD — Lock-free SPSC ring
 
-> **Status: draft for approval (M1.0).** Updated at the end of M1 to match what was built.
+> **Status: approved (2026-10-17).** Updated at the end of M1 to match what was built.
 
 ## 1. Purpose
 

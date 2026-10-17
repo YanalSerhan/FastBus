@@ -1,6 +1,6 @@
 # ADR-001: Error handling without exceptions on the hot path
 
-- **Status:** proposed — awaiting owner approval (M1.0)
+- **Status:** accepted (owner approval 2026-10-17)
 - **Date:** 2026-10-16
 - **Deciders:** Yanal Serhan
 
@@ -20,13 +20,14 @@ The hot path (publish, loan, take, poll, callback dispatch) must not throw: exce
 Option 1: own `fastbus::core::Result<T, E = Error>`.
 
 - Its API is a strict **subset of `std::expected`**: `has_value()`, `explicit operator bool`, `value()`, `error()`, `operator*`, `operator->`, `value_or()`. Migrating to C++23 is then a type alias plus search-and-replace.
-- `value()` on an error **asserts in debug builds and terminates** (`std::abort`) in release builds. It never throws.
+- `value()` on an error (and `error()` on a value) **terminates through `fail_fast`** in every build type: it prints the message and the source location, then calls `std::abort`. It never throws. `debug_check()` exists for checks that should be compiled out of release builds.
 - `Error` is a trivially copyable struct: `{ ErrorCode code; const char* message; }`. `ErrorCode` is an `enum class : std::uint16_t`, and `message` points to a static string literal. No allocation, so `Error` can be logged from any context.
 - `Result<void>` is supported for operations that only succeed or fail.
 - Rule: **construction and setup return `Result`**, through static factory functions instead of throwing constructors. **Hot-path operations return `bool` or a pointer** (full/empty is a normal outcome, not an error).
 
 ## Consequences
 
+- ✅ Implemented over `std::variant<T, E>` rather than a hand-written union: correct copy/move/destroy for non-trivial `T` comes for free, and setup code is not performance-critical.
 - ✅ No dependency, works under `-fno-exceptions`, `[[nodiscard]]` makes ignored errors a warning, and `-Werror` makes that an error.
 - ✅ `std::expected` migration is mechanical.
 - ❌ No monadic helpers (`and_then`, `transform`) at first. They are added only if real code needs them.

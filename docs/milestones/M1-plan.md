@@ -1,6 +1,6 @@
 # M1 — Platform layer + lock-free SPSC ring: plan
 
-> **Status: awaiting owner "go".** Per the rules of engagement, no M1 code is written until this plan, [PRD_spsc_ring.md](../PRD_spsc_ring.md), [ADR-001](../adr/ADR-001-error-handling.md), [ADR-007](../adr/ADR-007-clock-injection.md) and [ADR-009](../adr/ADR-009-cache-line.md) are approved.
+> **Status: approved 2026-10-17, in progress.** The plan, [PRD_spsc_ring.md](../PRD_spsc_ring.md), [ADR-001](../adr/ADR-001-error-handling.md), [ADR-007](../adr/ADR-007-clock-injection.md), [ADR-009](../adr/ADR-009-cache-line.md) and the open-question answers below were approved by the owner. Step 1 (M1.1) done.
 
 ## Scope
 
