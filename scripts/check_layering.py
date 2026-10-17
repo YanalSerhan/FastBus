@@ -6,6 +6,9 @@ Rules (docs/PLAN.md):
   * tools/ may use api + record (+ idl for generated messages);
   * examples/ and modules/ekf may use only the public API (api + idl).
 `fastbus/version.hpp` (generated) is allowed everywhere.
+
+Also enforces ADR-007: OS/std clocks (`steady_clock`, `system_clock`, `high_resolution_clock`)
+may only be used in src/platform/ and benchmarks/; everything else takes a `core::Clock&`.
 Exit code 1 on any violation.
 """
 
@@ -18,6 +21,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 INCLUDE_RE = re.compile(r'^\s*#\s*include\s*"fastbus/([a-z_]+)/', re.MULTILINE)
 EXTENSIONS = {".hpp", ".cpp", ".h", ".ipp"}
+BANNED_CLOCK_RE = re.compile(r"\b(steady_clock|system_clock|high_resolution_clock)\b")
+CLOCK_ALLOWED_PREFIXES = ("src/platform/", "benchmarks/")
+CLOCK_CHECKED_TOPS = ("include", "src", "tools", "examples", "modules", "tests")
 
 # Direct + transitive dependencies per library module (lower layers only).
 ALLOWED: dict[str, set[str]] = {
@@ -50,8 +56,26 @@ def owner_of(rel: Path) -> tuple[str, set[str]] | None:
     return None
 
 
+def clock_violations() -> int:
+    """ADR-007: count (and print) direct uses of std clocks outside the allowed places."""
+    found = 0
+    for top in CLOCK_CHECKED_TOPS:
+        for path in sorted((ROOT / top).rglob("*")):
+            if path.suffix not in EXTENSIONS or not path.is_file():
+                continue
+            rel = path.relative_to(ROOT).as_posix()
+            if rel.startswith(CLOCK_ALLOWED_PREFIXES):
+                continue
+            for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if BANNED_CLOCK_RE.search(line):
+                    found += 1
+                    print(f"error: {rel}:{lineno}: use fastbus::core::Clock instead of std clocks "
+                          "(ADR-007)")
+    return found
+
+
 def main() -> int:
-    violations = 0
+    violations = clock_violations()
     checked = 0
     for top in ("include", "src", "tools", "examples", "modules"):
         for path in sorted((ROOT / top).rglob("*")):
