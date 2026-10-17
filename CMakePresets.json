@@ -124,7 +124,8 @@
       "inherits": "linux-gcc",
       "cacheVariables": {
         "FASTBUS_COVERAGE": "ON",
-        "FASTBUS_BUILD_BENCHMARKS": "OFF"
+        "FASTBUS_BUILD_BENCHMARKS": "OFF",
+        "FASTBUS_COVERAGE_FAIL_UNDER": "85"
       }
     },
     {

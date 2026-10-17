@@ -6,6 +6,11 @@
 # Gate: FASTBUS_COVERAGE_FAIL_UNDER (line %). 0 in M0 (report only), 85 from M1.
 
 set(FASTBUS_COVERAGE_FAIL_UNDER "0" CACHE STRING "Minimum line coverage (%) for the gate")
+# Source paths (relative to the repo root) that count towards the gate. M1 gates core + platform;
+# later milestones append their modules here when they reach the bar.
+set(FASTBUS_COVERAGE_PATHS
+    "include/fastbus/core;include/fastbus/platform;src/core;src/platform"
+    CACHE STRING "Paths measured by the coverage report and gate")
 
 add_library(fastbus_coverage INTERFACE)
 add_library(fastbus::coverage ALIAS fastbus_coverage)
@@ -31,6 +36,10 @@ if(FASTBUS_COVERAGE)
         if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
             set(_gcov_exe "llvm-cov gcov")
         endif()
+        set(_coverage_filters "")
+        foreach(_path IN LISTS FASTBUS_COVERAGE_PATHS)
+            list(APPEND _coverage_filters --filter "${PROJECT_SOURCE_DIR}/${_path}/")
+        endforeach()
         set(_report_dir "${PROJECT_BINARY_DIR}/coverage")
         add_custom_target(coverage
             COMMAND ${CMAKE_COMMAND} -E make_directory "${_report_dir}"
@@ -39,8 +48,7 @@ if(FASTBUS_COVERAGE)
                 --root "${PROJECT_SOURCE_DIR}"
                 --object-directory "${PROJECT_BINARY_DIR}"
                 --gcov-executable "${_gcov_exe}"
-                --filter "${PROJECT_SOURCE_DIR}/include/"
-                --filter "${PROJECT_SOURCE_DIR}/src/"
+                ${_coverage_filters}
                 --exclude-unreachable-branches
                 --print-summary
                 --xml "${_report_dir}/coverage.xml"

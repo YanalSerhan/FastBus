@@ -5,6 +5,8 @@
 
 namespace fastbus::core {
 
+// GCOVR_EXCL_START: runs only in death-test child processes, which abort() before gcov writes
+// its counters. Covered behaviourally by the death tests (result_test, spsc_ring_test).
 void fail_fast(const char* what, std::source_location where) noexcept {
     // fprintf to stderr is unbuffered and does not allocate on the supported C runtimes. Its
     // result is ignored on purpose: we are about to abort and have nowhere to report a failure.
@@ -14,5 +16,6 @@ void fail_fast(const char* what, std::source_location where) noexcept {
                                    static_cast<unsigned>(where.line())));
     std::abort();
 }
+// GCOVR_EXCL_STOP
 
 }  // namespace fastbus::core

@@ -188,7 +188,7 @@ jobs:
 
   # ------------------------------------------------------------------------------------------
   coverage:
-    name: coverage (report only in M0)
+    name: coverage (gate: core + platform >= 85 %)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -206,7 +206,7 @@ jobs:
           key: deps-linux-coverage-${{ hashFiles('cmake/Dependencies.cmake') }}
       - run: cmake --preset linux-coverage
       - run: cmake --build --preset linux-coverage --parallel
-      - name: Tests + coverage report
+      - name: Tests + coverage report + gate (fails below FASTBUS_COVERAGE_FAIL_UNDER)
         run: cmake --build --preset linux-coverage --target coverage
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
