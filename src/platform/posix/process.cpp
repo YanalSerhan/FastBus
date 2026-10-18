@@ -45,9 +45,9 @@ bool read_proc_stat(std::uint64_t pid, ProcStat& out) noexcept {
     std::array<char, 64> path{};
     constexpr std::string_view kHead = "/proc/";
     constexpr std::string_view kTail = "/stat";
-    char* p = std::copy(kHead.begin(), kHead.end(), path.begin());
+    char* p = std::ranges::copy(kHead, path.begin()).out;
     p = std::to_chars(p, path.data() + path.size() - kTail.size() - 1, pid).ptr;
-    p = std::copy(kTail.begin(), kTail.end(), p);
+    p = std::ranges::copy(kTail, p).out;
     *p = '\0';
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): open(2) is declared variadic

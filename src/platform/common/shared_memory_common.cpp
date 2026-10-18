@@ -21,7 +21,7 @@ constexpr bool is_name_char(char c) noexcept {
 
 bool is_valid_shm_name(std::string_view name) noexcept {
     return !name.empty() && name.size() <= kMaxShmNameLength &&
-           std::all_of(name.begin(), name.end(), is_name_char);
+           std::ranges::all_of(name, is_name_char);
 }
 
 namespace detail {
@@ -32,8 +32,8 @@ std::size_t shm_os_name(std::string_view prefix, std::string_view name,
     if (!is_valid_shm_name(name) || out.size() < length + 1) {
         return 0;
     }
-    auto it = std::copy(prefix.begin(), prefix.end(), out.begin());
-    it = std::copy(name.begin(), name.end(), it);
+    auto it = std::ranges::copy(prefix, out.begin()).out;
+    it = std::ranges::copy(name, it).out;
     *it = '\0';
     return length;
 }

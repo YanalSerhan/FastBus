@@ -42,14 +42,15 @@ bool widen(std::string_view in, std::wstring& out) {
     if (in.empty()) {
         return true;
     }
-    const int in_len = static_cast<int>(in.size());
-    const int n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, in.data(), in_len, nullptr, 0);
+    // in.size() is passed in the same call as in.data(): the input need not be NUL-terminated.
+    const int n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, in.data(),
+                                      static_cast<int>(in.size()), nullptr, 0);
     if (n <= 0) {
         return false;
     }
     out.resize(static_cast<std::size_t>(n));
-    return MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, in.data(), in_len, out.data(), n) ==
-           n;
+    return MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, in.data(),
+                               static_cast<int>(in.size()), out.data(), n) == n;
 }
 
 /// Appends `arg` to `cmd`, quoted so that CommandLineToArgvW returns it unchanged.
