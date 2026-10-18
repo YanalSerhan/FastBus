@@ -6,10 +6,10 @@
 # Gate: FASTBUS_COVERAGE_FAIL_UNDER (line %). 0 in M0 (report only), 85 from M1.
 
 set(FASTBUS_COVERAGE_FAIL_UNDER "0" CACHE STRING "Minimum line coverage (%) for the gate")
-# Source paths (relative to the repo root) that count towards the gate. M1 gates core + platform;
-# later milestones append their modules here when they reach the bar.
+# Source paths (relative to the repo root) that count towards the gate. M1 gated core + platform;
+# M2.3 added transport. Later milestones append their modules here when they reach the bar.
 set(FASTBUS_COVERAGE_PATHS
-    "include/fastbus/core;include/fastbus/platform;src/core;src/platform"
+    "include/fastbus/core;include/fastbus/platform;include/fastbus/transport;src/core;src/platform;src/transport"
     CACHE STRING "Paths measured by the coverage report and gate")
 
 add_library(fastbus_coverage INTERFACE)

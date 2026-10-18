@@ -44,3 +44,26 @@ fastbus_add_test(fastbus_unit_ipc
     LABELS unit
     TIMEOUT 120)
 fastbus_use_test_child(fastbus_unit_ipc)
+
+# M2.3/M2.4: OffsetPtr, CRC32C (platform) and the message header (core).
+fastbus_add_test(fastbus_unit_message
+    SOURCES
+        crc32c_test.cpp
+        message_header_test.cpp
+        offset_ptr_test.cpp
+    DEPS fastbus::core
+    LABELS unit)
+
+# M2.5: slab block pool.
+fastbus_add_test(fastbus_unit_slab
+    SOURCES slab_test.cpp
+    DEPS fastbus::core
+    LABELS unit)
+
+# M2.3: transport segments, including killed child processes (fb_test_child).
+fastbus_add_test(fastbus_unit_segment
+    SOURCES segment_test.cpp
+    DEPS fastbus::transport
+    LABELS unit
+    TIMEOUT 120)
+fastbus_use_test_child(fastbus_unit_segment)

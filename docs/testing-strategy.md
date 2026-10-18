@@ -24,6 +24,11 @@ Rules: tests first or alongside; timing-dependent tests use virtual clocks; anyt
 - Shared-memory names come from `fastbus::test::unique_shm_name()` (tag + pid + counter), because ctest runs test cases as parallel processes.
 - Assertions on failures use `fastbus::test::error_of(result)` instead of `.error().code`, so an unexpected success fails one assertion instead of aborting the binary in `Result::error()`.
 - Behaviour that differs by OS on purpose (KI-010) is asserted per OS, so the difference cannot change silently.
+- Crash tests kill real child processes (`fb_test_child segment-create|segment-stall`) with SIGKILL / TerminateProcess, so no destructor or cleanup code runs, exactly like a real crash.
+
+## Untrusted-memory tests (from M2.3)
+
+Every parser of shared memory (and later of packets and log files) gets two kinds of tests: one per specific corruption (each field set to a bad value, expecting a specific error), and a **bit-flip sweep** that flips every bit of the header in turn and requires a clean result each time. Run under ASan/UBSan, the sweep proves there is no out-of-bounds read or undefined behaviour on any single-bit corruption. The full random fuzz test of segments and descriptors comes in M2.8.
 
 ## Stress tests (from M1.7)
 

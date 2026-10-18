@@ -5,8 +5,9 @@ Every versioned artifact has a version field that is validated on load.
 | Artifact | Where | Current |
 |---|---|---|
 | Library (SemVer) | `project(VERSION)` → generated `fastbus/version.hpp` | 0.1.0 |
-| Shm segment layout | `SegmentHeader.layout_version` | 1 (M2) |
-| Message header | `MessageHeader.header_version` | 1 (M2) |
+| Shm segment layout | `SegmentHeader.layout_version` | 1 (since M2.3) |
+| Shm slab layout | `SlabHeader.version` | 1 (since M2.5) |
+| Message header | `MessageHeader.header_version` | 1 (since M2.4) |
 | UDP wire protocol | packet header `wire_version` | 1 (M6) |
 | Log format | `.fblog` header `format_version` | 1 (M5) |
 | IDL language | `fbgen --lang-version` | 1 (M4) |

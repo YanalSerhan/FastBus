@@ -7,10 +7,10 @@ Architecture Decision Records (ADRs) live in [`adr/`](adr/). Each has Context / 
 | ADR | Title | Status | Decided in |
 |---|---|---|---|
 | [ADR-001](adr/ADR-001-error-handling.md) | Error handling without exceptions on the hot path | accepted | M1 |
-| [ADR-002](adr/ADR-002-platform-abstraction.md) | Platform abstraction by build-time source selection | proposed, awaiting approval | M2 (proposed 2026-10-18) |
-| [ADR-003](adr/ADR-003-fanout-zero-copy.md) | Fan-out / zero-copy design | proposed, awaiting approval | M2 (proposed 2026-10-18) |
-| [ADR-004](adr/ADR-004-wire-shm-layout.md) | Wire / shared-memory layout rules | proposed, awaiting approval | M2 (proposed 2026-10-18) |
-| [ADR-005](adr/ADR-005-checksum.md) | Checksum algorithm and policy | proposed, awaiting approval | M2 (proposed 2026-10-18) |
+| [ADR-002](adr/ADR-002-platform-abstraction.md) | Platform abstraction by build-time source selection | accepted | M2 (2026-10-18) |
+| [ADR-003](adr/ADR-003-fanout-zero-copy.md) | Fan-out / zero-copy design | accepted | M2 (2026-10-18) |
+| [ADR-004](adr/ADR-004-wire-shm-layout.md) | Wire / shared-memory layout rules | accepted | M2 (2026-10-18) |
+| [ADR-005](adr/ADR-005-checksum.md) | Checksum algorithm and policy | accepted | M2 (2026-10-18) |
 | [ADR-006](adr/ADR-006-prng.md) | Reproducible PRNG and distributions | proposed | M6 |
 | [ADR-007](adr/ADR-007-clock-injection.md) | Injectable time | accepted | M1 |
 | [ADR-008](adr/ADR-008-transport-interface.md) | Transport interface: static vs dynamic polymorphism | proposed | M3 |
@@ -65,3 +65,9 @@ The scaffold was built with the **proposed defaults**. Status: **confirmed by th
 | 2026-10-18 | platform | Process liveness = pid **and** start time; zombies count as dead | PIDs are reused; a stale segment's creator must not look alive because an unrelated process got its pid. A zombie can no longer touch shared memory, so it is dead for fastbus. |
 | 2026-10-18 | platform | Shared code for both backends lives in `src/platform/common/` (name rule, move operations) | Keeps the per-OS files to OS calls only, with no duplicated logic and no `#ifdef`. |
 | 2026-10-18 | tooling | clang-tidy 19 pinned through uv (`clang-tidy==19.1.0`) for Linux CI and local runs on any OS | Windows uses the clang-tidy 19 bundled with Visual Studio; running 18 on Linux meant every v19-only check failed only on Windows, one round-trip at a time (KI-008). Same mechanism as clang-format (KI-002). |
+| 2026-10-18 | transport | Two-phase segment creation: `create()` leaves it `initializing`, the owner lays out the payload, then `mark_ready()` | The payload (slab, rings) must be complete before anyone attaches; a one-shot create could only mark the header ready. |
+| 2026-10-18 | transport | Opener checks the creator's liveness while waiting for `ready` (fields read via `atomic_ref`) | A creator that crashed mid-initialization is reported at once as NotFound instead of after the full timeout; `atomic_ref` keeps the concurrent read of the identity fields race-free. |
+| 2026-10-18 | core | Slab block state = one `atomic<u64>` (generation << 32 \| state) with explicit FREE/LOANED/SHARED/RETURNED values | Checking generation and refcount in separate loads leaves a window where a stale descriptor decrements a reused block; one CAS closes it. Explicit states let the publisher refuse double reclaims and stolen loans from a corrupted return ring. |
+| 2026-10-18 | core | No "owner id" in the block header (TODO M2.5 listed one) | The publisher is the only allocator and owner by construction (ADR-003); a dead subscriber's references are tracked through its rings (M2.7). |
+| 2026-10-18 | platform | CRC32C is selected once at runtime (CPUID) on x86, at compile time on ARM | x86 CI and user machines vary; ARM targets that enable the CRC extension at compile time have it by definition. |
+| 2026-10-18 | tests | Threads in oversubscribed stress tests yield instead of spinning | The slab stress test runs 5 threads on 2–4 CI cores; busy-spinning waiters starved the threads they waited for (262 s → 0.6 s for 2e5 messages). |

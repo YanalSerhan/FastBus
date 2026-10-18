@@ -26,6 +26,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 - `fastbus::vocabulary` library (Result/Error/fail_fast) below platform (ADR-002); new `ErrorCode`s `AlreadyExists`, `NotFound`, `PermissionDenied`, `Timeout`.
 - Shared memory (M2.1): `platform::SharedMemory` (`create`/`open`/`remove`, page-rounded, page-aligned), `is_valid_shm_name`, `page_size`; Windows (`CreateFileMappingW`) and POSIX (`shm_open` + `posix_fallocate`) backends.
 - Processes (M2.2): `platform::Process` (`spawn`/`wait`/`kill`/`running`, kill-on-destroy), `ProcessIdentity` + `current_process`/`identity_of`/`is_alive` (pid + start time); `tests/helpers/fb_test_child` with watchdog.
+- Segments (M2.3): `transport::Segment` (two-phase create → `mark_ready`, `open` with timeout, `closing` on destroy, stale-creator recovery by pid + start time), `SegmentHeader` (128 B, layout v1), `validate_segment`; `core::OffsetPtr` with checked `resolve`.
+- Message header (M2.4): `core::MessageHeader` (64 B, header v1), `fnv1a_64` type ids, `make_header`/`validate`/`seal`/`verify`; `platform::crc32c` (software slice-by-8, SSE4.2, ARMv8).
+- Slab (M2.5): `core::SlabView` — publisher-only allocation, packed generation + refcount CAS, states FREE/LOANED/SHARED/RETURNED; `ErrorCode`s `PoolExhausted`, `Corrupted`, `VersionMismatch`.
+- Coverage gate now also covers `transport`.
 - `fastbus::core` (M1.1): `StrongType<T, Tag>` and the ID types (`TopicId`, `NodeId`, `PublisherId`, `SequenceNumber`, `TypeId`, `SchemaVersion`), `Duration`/`Timestamp`, `Error`/`ErrorCode`, `Result<T, E>` (std::expected subset), `fail_fast`/`check`/`debug_check` contract helpers, with unit and death tests.
 - Windows-first workflow: `scripts/dev.ps1` (doctor, build, test, asan, tidy, format, lint, bench, check) that enters the VS developer environment automatically.
 - `windows-tidy` preset; CI Windows jobs for MSVC Debug/Release, clang-cl, MSVC ASan and clang-tidy, all via `dev.ps1`.
