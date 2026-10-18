@@ -17,6 +17,14 @@
 
 Rules: tests first or alongside; timing-dependent tests use virtual clocks; anything marked done was actually run.
 
+## Cross-process tests (from M2.1)
+
+- Child processes are always `tests/helpers/fb_test_child` (roles via argv), found through the `FASTBUS_TEST_CHILD` compile definition (`fastbus_use_test_child(<target>)`).
+- No hang is possible: the helper has a watchdog (exits with 124, default 30 s), `platform::Process` kills its child on destruction, and every test has a ctest timeout.
+- Shared-memory names come from `fastbus::test::unique_shm_name()` (tag + pid + counter), because ctest runs test cases as parallel processes.
+- Assertions on failures use `fastbus::test::error_of(result)` instead of `.error().code`, so an unexpected success fails one assertion instead of aborting the binary in `Result::error()`.
+- Behaviour that differs by OS on purpose (KI-010) is asserted per OS, so the difference cannot change silently.
+
 ## Stress tests (from M1.7)
 
 - One test binary per component (`fastbus_stress_<name>`); each parameter combination is its own ctest entry with label `stress` and a 120 s timeout, plus an internal time limit so a slow machine reports partial progress instead of hanging.

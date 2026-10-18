@@ -7,10 +7,10 @@ Architecture Decision Records (ADRs) live in [`adr/`](adr/). Each has Context / 
 | ADR | Title | Status | Decided in |
 |---|---|---|---|
 | [ADR-001](adr/ADR-001-error-handling.md) | Error handling without exceptions on the hot path | accepted | M1 |
-| [ADR-002](adr/ADR-002-platform-abstraction.md) | Platform abstraction by build-time source selection | proposed | M2 |
-| [ADR-003](adr/ADR-003-fanout-zero-copy.md) | Fan-out / zero-copy design | proposed | M2 |
-| [ADR-004](adr/ADR-004-wire-shm-layout.md) | Wire / shared-memory layout rules | proposed | M2 |
-| [ADR-005](adr/ADR-005-checksum.md) | Checksum algorithm and policy | proposed | M2 |
+| [ADR-002](adr/ADR-002-platform-abstraction.md) | Platform abstraction by build-time source selection | proposed, awaiting approval | M2 (proposed 2026-10-18) |
+| [ADR-003](adr/ADR-003-fanout-zero-copy.md) | Fan-out / zero-copy design | proposed, awaiting approval | M2 (proposed 2026-10-18) |
+| [ADR-004](adr/ADR-004-wire-shm-layout.md) | Wire / shared-memory layout rules | proposed, awaiting approval | M2 (proposed 2026-10-18) |
+| [ADR-005](adr/ADR-005-checksum.md) | Checksum algorithm and policy | proposed, awaiting approval | M2 (proposed 2026-10-18) |
 | [ADR-006](adr/ADR-006-prng.md) | Reproducible PRNG and distributions | proposed | M6 |
 | [ADR-007](adr/ADR-007-clock-injection.md) | Injectable time | accepted | M1 |
 | [ADR-008](adr/ADR-008-transport-interface.md) | Transport interface: static vs dynamic polymorphism | proposed | M3 |
@@ -58,3 +58,9 @@ The scaffold was built with the **proposed defaults**. Status: **confirmed by th
 | 2026-10-17 | tests | Coverage gate measures only the modules that are expected to meet it (`FASTBUS_COVERAGE_PATHS`, M1: core + platform) | Stub modules with no tests yet would drag the number down and make the gate meaningless; each milestone adds its module once it is tested. |
 | 2026-10-17 | bench | The mutex + deque baseline is bounded to the ring's capacity and uses the same try_push/try_pop shape | A fair comparison: both queues refuse when full, so the difference is the synchronization, not unbounded buffering. |
 | 2026-10-17 | tests | The allocation test counts only inside an armed window opened after setup, warm-up and thread creation | Setup allocations (the ring's one block, gtest, `std::thread`) are allowed by the PRD; anything counted inside the window comes from the ring operations. A control test proves the hook counts. |
+| 2026-10-18 | platform | `fastbus::vocabulary` (Result/Error/fail_fast) as its own library below platform (ADR-002) | Platform setup calls need the same error vocabulary as everything else; linking platform to core would be a layering violation and a static-link cycle. Files keep their paths and namespace; the layering script allows platform exactly these three headers. |
+| 2026-10-18 | platform | Shared-memory sizes are rounded up to whole pages at creation | Windows cannot report an existing mapping's exact size, only whole pages; rounding at creation makes creator and opener agree on every OS. The exact byte count is the segment header's job (M2.3). |
+| 2026-10-18 | platform | One portable shm name rule (1–200 chars of `[A-Za-z0-9._-]`) instead of per-OS rules | A name valid on one OS is valid on all; fastbus chooses the names, so nothing is lost. |
+| 2026-10-18 | platform | `posix_spawn` instead of `fork` + `exec` | Forking a multi-threaded process (gtest, test threads, later the transport's threads) is only safe for async-signal-safe code until exec; `posix_spawn` avoids the problem. |
+| 2026-10-18 | platform | Process liveness = pid **and** start time; zombies count as dead | PIDs are reused; a stale segment's creator must not look alive because an unrelated process got its pid. A zombie can no longer touch shared memory, so it is dead for fastbus. |
+| 2026-10-18 | platform | Shared code for both backends lives in `src/platform/common/` (name rule, move operations) | Keeps the per-OS files to OS calls only, with no duplicated logic and no `#ifdef`. |

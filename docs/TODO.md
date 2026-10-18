@@ -3,7 +3,7 @@
 > Living task tracker for the fastbus project. Updated at the start and end of every work session.
 > Source of truth for scope: `docs/PRD.md`. Source of truth for design: `docs/PLAN.md`.
 >
-> **Current state (2026-10-17):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1.1–M1.8 green in CI; M1.9/M1.10 (allocation test, benchmarks, milestone report) awaiting CI on the final commit — [M1 report](milestones/M1-report.md).
+> **Current state (2026-10-18):** G0.1 decisions confirmed. M0 done — CI fully green on Windows + Linux ([run](https://github.com/YanalSerhan/FastBus/actions/runs/38907993718)), report in [milestones/M0-report.md](milestones/M0-report.md). M1 approved and in progress ([milestones/M1-plan.md](milestones/M1-plan.md)); steps 1–2 (M1.1 types, M1.2 clocks) done; M1 done ([report](milestones/M1-report.md)). M2 started: M2.0 docs proposed and awaiting owner approval; M2.1 shared memory and M2.2 processes implemented, Windows backend awaiting CI ([M2 plan](milestones/M2-plan.md)).
 
 ## 0. How to read this file
 
@@ -78,10 +78,10 @@ graph TD
 
 ### G0.4 ADR stubs to create (each gets Context / Options / Decision / Consequences)
 - [x] ADR-001 Error handling without exceptions on hot path: C++20 has no `std::expected` → own `Result<T,E>` (`[[nodiscard]]`), or pinned `tl::expected`. → *accepted 2026-10-17*
-- [~] ADR-002 Platform abstraction by build-time source selection (`platform/windows/*.cpp` vs `platform/posix/*.cpp`), zero `#ifdef` in core logic. → *stub in docs/adr/*
-- [~] ADR-003 Fan-out/zero-copy design (Q2). → *stub in docs/adr/*
-- [~] ADR-004 Wire/shm layout: little-endian only, `static_assert(std::endian::native == std::endian::little)`, no pointers in shared memory (offsets only), explicit padding. → *stub in docs/adr/*
-- [~] ADR-005 Checksum: CRC32C (software table + SSE4.2/ARM CRC when available); optional on shm hot path, mandatory on UDP and log. → *stub in docs/adr/*
+- [~] ADR-002 Platform abstraction by build-time source selection (`platform/windows/*.cpp` vs `platform/posix/*.cpp`), zero `#ifdef` in core logic. → *written 2026-10-18 (M2.0), proposed, awaiting owner approval*
+- [~] ADR-003 Fan-out/zero-copy design (Q2). → *written 2026-10-18 (M2.0), proposed, awaiting owner approval*
+- [~] ADR-004 Wire/shm layout: little-endian only, `static_assert(std::endian::native == std::endian::little)`, no pointers in shared memory (offsets only), explicit padding. → *written 2026-10-18 (M2.0), proposed, awaiting owner approval*
+- [~] ADR-005 Checksum: CRC32C (software table + SSE4.2/ARM CRC when available); optional on shm hot path, mandatory on UDP and log. → *written 2026-10-18 (M2.0), proposed, awaiting owner approval*
 - [~] ADR-006 PRNG: own PCG32/xoshiro256** + own distributions (`<random>` distributions are implementation-defined → not reproducible across MSVC/libstdc++/libc++). → *stub in docs/adr/*
 - [x] ADR-007 Time: injectable `Clock` interface; modules never call `steady_clock::now()` directly. → *accepted 2026-10-17*
 - [~] ADR-008 Transport interface: static (concepts) vs dynamic (virtual) polymorphism; how fault layer wraps loan-based transports. → *stub in docs/adr/*
@@ -298,11 +298,11 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 - [x] Record in `known-issues.md`: TSan is blind to cross-process access; ring logic is validated in-process with threads (same code path). — KI-005 updated
 
 ### M1.9 Allocation and micro-benchmarks  — `P1, M`
-- [~] Counting `operator new/delete` hook test binary: assert zero allocations during N push/pop after setup. — `tests/alloc/spsc_ring_noalloc_test.cpp`: 0 allocations in 100 000 single-thread ops (push/pop, claim/commit, peek/release, size_approx) and in a 200 000-item two-thread transfer; `create` allocates exactly once; a control test proves the hook counts. **Mutation-checked:** a hidden `new`/`delete` in `try_push` → 50 000 / 210 797 allocations reported. *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan, Release, coverage (TSan and MSVC ASan excluded, KI-009); Windows = next CI run*
-- [~] `benchmarks/bm_spsc_ring.cpp`: single-thread push/pop cost; 2-thread throughput; baseline `mutex+deque` queue kept for M9 comparisons. — 8 benchmarks (8 B and 64 B payloads), baseline in `benchmarks/baseline_mutex_queue.hpp`; local results in `docs/benchmarks.md` (2.0 ns push+pop, 279 M items/s two-thread, 114× the baseline); CI runs it at smoke length. *local run 2026-10-17, 2-vCPU VM; Windows = next CI run*
+- [x] Counting `operator new/delete` hook test binary: assert zero allocations during N push/pop after setup. — `tests/alloc/spsc_ring_noalloc_test.cpp`: 0 allocations in 100 000 single-thread ops (push/pop, claim/commit, peek/release, size_approx) and in a 200 000-item two-thread transfer; `create` allocates exactly once; a control test proves the hook counts. **Mutation-checked:** a hidden `new`/`delete` in `try_push` → 50 000 / 210 797 allocations reported. *local run 2026-10-17: GCC 13, Clang 18, ASan/UBSan, Release, coverage (TSan and MSVC ASan excluded, KI-009); Windows CI green, owner-confirmed 2026-10-18*
+- [x] `benchmarks/bm_spsc_ring.cpp`: single-thread push/pop cost; 2-thread throughput; baseline `mutex+deque` queue kept for M9 comparisons. — 8 benchmarks (8 B and 64 B payloads), baseline in `benchmarks/baseline_mutex_queue.hpp`; local results in `docs/benchmarks.md` (2.0 ns push+pop, 279 M items/s two-thread, 114× the baseline); CI runs it at smoke length. *local run 2026-10-17, 2-vCPU VM; Windows CI green, owner-confirmed 2026-10-18*
 
 ### M1.10 Milestone report  — `P0, S`
-- [~] Milestone report `docs/milestones/M1-report.md`, CHANGELOG, README status, PRD updated to what was built, interview Q&As (M1 section of `interview-prep.md`). — *written 2026-10-17; closes with green CI on the final M1 commit*
+- [x] Milestone report `docs/milestones/M1-report.md`, CHANGELOG, README status, PRD updated to what was built, interview Q&As (M1 section of `interview-prep.md`). — *written 2026-10-17; closed 2026-10-18 (owner moved on to M2)*
 - Interview prompts: (1) Why acquire/release and not seq_cst — which edges matter? (2) What is false sharing and how did you prevent and verify it? (3) Why monotonic indices with power-of-two masks, and what is the overflow constraint? Bonus: why does SPSC not suffer ABA?
 
 ---
@@ -318,19 +318,19 @@ Use preset `"version": 5` (needs CMake 3.24; workflow presets would need 3.25, s
 - MPSC passes multi-producer stress under TSan (in-process threads).
 
 ### M2.0 Docs and decisions  — `P0, M`
-- [ ] `PRD_shm_transport.md`, `PRD_mpsc_queue.md`; ADR-002, ADR-003 (fan-out: descriptor ring + slab + refcount vs full-message rings), ADR-004, ADR-005.
-- [ ] Document the platform semantic gap: POSIX shm persists until unlinked; Windows mappings die with the last handle. Define fastbus semantics: *creator owns lifetime*; stale cleanup is explicit (`fbclean`).
+- [~] `PRD_shm_transport.md`, `PRD_mpsc_queue.md`; ADR-002, ADR-003 (fan-out: descriptor ring + slab + refcount vs full-message rings), ADR-004, ADR-005. — *written 2026-10-18, plus [milestones/M2-plan.md](milestones/M2-plan.md); proposed, awaiting owner approval (PRD_shm_transport §13, PRD_mpsc_queue §9). ADR-002 adds the `fastbus::vocabulary` layer so platform can return `Result`.*
+- [~] Document the platform semantic gap: POSIX shm persists until unlinked; Windows mappings die with the last handle. Define fastbus semantics: *creator owns lifetime*; stale cleanup is explicit (`fbclean`). — PRD_shm_transport §3.1 (table + semantics), KI-010; pinned down by `SharedMemory.OpenerKeepsItsMappingAfterTheCreatorIsDestroyed` (per-OS expectation)
 
 ### M2.1 Platform: shared memory  — `P0, L`
-- [ ] `SharedMemory` RAII class: `create(name, size)`, `open(name)`, `data()`, `size()`, unlink-on-destroy for creator. Error via `Result`.
-- [ ] Windows: `CreateFileMappingW` + `MapViewOfFile`, `Local\fastbus_...` namespace (Global needs privileges), detect create-vs-open via `ERROR_ALREADY_EXISTS`.
-- [ ] POSIX: `shm_open(O_CREAT|O_EXCL|O_RDWR, 0600)`, `ftruncate`, `mmap(MAP_SHARED)`, name must start with `/` and contain no further `/`.
-- [ ] Name mangling/validation function shared by both backends; base address page-aligned (64 KB on Windows) so cache-line alignment holds.
-- [ ] Tests: create/open/close, size mismatch, double-create error, data visible across two mappings in one process, cleanup on destruction.
+- [~] `SharedMemory` RAII class: `create(name, size)`, `open(name)`, `data()`, `size()`, unlink-on-destroy for creator. Error via `Result`. — `include/fastbus/platform/shared_memory.hpp`; also `remove(name)` for stale cleanup, `bytes()`, `is_creator()`, `name()`; sizes rounded to pages so creator and opener agree on both OSes; new `ErrorCode`s AlreadyExists/NotFound/PermissionDenied/Timeout; *local run 2026-10-18: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, coverage, Release; 20× repeat stable; no segments left in /dev/shm; Windows backend = next CI run*
+- [~] Windows: `CreateFileMappingW` + `MapViewOfFile`, `Local\fastbus_...` namespace (Global needs privileges), detect create-vs-open via `ERROR_ALREADY_EXISTS`. — `src/platform/windows/shared_memory.cpp` (`SEC_COMMIT`, last error cleared before the call, `VirtualQuery` for the opener's size); *Windows = next CI run*
+- [~] POSIX: `shm_open(O_CREAT|O_EXCL|O_RDWR, 0600)`, `ftruncate`, `mmap(MAP_SHARED)`, name must start with `/` and contain no further `/`. — `src/platform/posix/shared_memory.cpp`, plus `posix_fallocate` so a full `/dev/shm` fails with OutOfMemory instead of SIGBUS later; a failed create undoes itself (tested). **Mutation-checked:** dropping `O_EXCL` → `CreateTwiceFailsWithAlreadyExists` fails
+- [~] Name mangling/validation function shared by both backends; base address page-aligned (64 KB on Windows) so cache-line alignment holds. — `src/platform/common/shared_memory_common.cpp`: one portable rule (1–200 chars of `[A-Za-z0-9._-]`), prefix per backend; alignment asserted in tests
+- [~] Tests: create/open/close, size mismatch, double-create error, data visible across two mappings in one process, cleanup on destruction. — `tests/unit/shared_memory_test.cpp` (13 tests): also invalid names, zero/huge size, opener outliving the creator (per-OS), stale `remove`, move, move-assign, and a **real child process** reading and writing the parent's segment. "Size mismatch" became "sizes agree after page rounding" (Windows cannot report exact sizes; the exact size lives in the M2.3 header)
 
 ### M2.2 Platform: process utilities  — `P0, M`
-- [ ] `Process::spawn(path, args)`, `wait(timeout)`, `kill()`, `is_alive(pid)`, `current_pid()`, process start time (to defeat **pid reuse** in liveness checks).
-- [ ] Test helper executable `tests/helpers/fb_test_child` (roles via argv); watchdog so hung children never hang CI.
+- [~] `Process::spawn(path, args)`, `wait(timeout)`, `kill()`, `is_alive(pid)`, `current_pid()`, process start time (to defeat **pid reuse** in liveness checks). — `include/fastbus/platform/process.hpp`: `ProcessIdentity` {pid, start_time}, `current_process()`, `identity_of(pid)`, `is_alive(identity)`; POSIX `posix_spawn` + `/proc/<pid>/stat` (zombies count as dead), Windows `CreateProcessW` with `CommandLineToArgvW`-compatible quoting + `GetProcessTimes`; destroying a running `Process` kills it. **Mutation-checked:** ignoring the start time → `SamePidWithADifferentStartTimeIsNotAlive` fails; counting zombies as alive → `ExitedButUnreapedChildIsNotAlive` fails. *local run 2026-10-18: GCC 13, Clang 18, ASan/UBSan/TSan, clang-tidy 18, coverage, Release; 20× repeat stable; no segments left in /dev/shm; Windows backend = next CI run*
+- [~] Test helper executable `tests/helpers/fb_test_child` (roles via argv); watchdog so hung children never hang CI. — roles `exit`, `sleep`, `hang`, `shm-write`, `shm-check`, `shm-identity`, `shm-args`; `--watchdog-ms` (default 30 s) exits with 124 (tested); `tests/unit/process_test.cpp` (13 tests) incl. Windows-quoting edge cases
 
 ### M2.3 Segment protocol  — `P0, M`
 - [ ] `SegmentHeader` {magic, layout_version, total_size, creator_pid, creator_start_time, state (initializing → ready → closing), generation/epoch}. Creator initializes then `state.store(ready, release)`; openers `acquire`-wait with timeout.

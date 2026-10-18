@@ -19,6 +19,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 
 ### Fixed
 - `fastbus_add_test` silently dropped extra labels; one label per binary is now enforced (BL-008).
+
+### Added (M2)
+- M2.0 docs: `milestones/M2-plan.md`, `PRD_shm_transport.md`, `PRD_mpsc_queue.md`, ADR-002/003/004/005 (proposed), shared-memory lifetime semantics (KI-010).
+- `fastbus::vocabulary` library (Result/Error/fail_fast) below platform (ADR-002); new `ErrorCode`s `AlreadyExists`, `NotFound`, `PermissionDenied`, `Timeout`.
+- Shared memory (M2.1): `platform::SharedMemory` (`create`/`open`/`remove`, page-rounded, page-aligned), `is_valid_shm_name`, `page_size`; Windows (`CreateFileMappingW`) and POSIX (`shm_open` + `posix_fallocate`) backends.
+- Processes (M2.2): `platform::Process` (`spawn`/`wait`/`kill`/`running`, kill-on-destroy), `ProcessIdentity` + `current_process`/`identity_of`/`is_alive` (pid + start time); `tests/helpers/fb_test_child` with watchdog.
 - `fastbus::core` (M1.1): `StrongType<T, Tag>` and the ID types (`TopicId`, `NodeId`, `PublisherId`, `SequenceNumber`, `TypeId`, `SchemaVersion`), `Duration`/`Timestamp`, `Error`/`ErrorCode`, `Result<T, E>` (std::expected subset), `fail_fast`/`check`/`debug_check` contract helpers, with unit and death tests.
 - Windows-first workflow: `scripts/dev.ps1` (doctor, build, test, asan, tidy, format, lint, bench, check) that enters the VS developer environment automatically.
 - `windows-tidy` preset; CI Windows jobs for MSVC Debug/Release, clang-cl, MSVC ASan and clang-tidy, all via `dev.ps1`.

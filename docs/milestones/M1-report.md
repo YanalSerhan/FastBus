@@ -1,6 +1,6 @@
 # M1 — Platform layer + lock-free SPSC ring: milestone report
 
-- **Status:** complete locally (2026-10-17). M1.1–M1.8 are green in CI on Windows and Linux (owner-confirmed). M1.9/M1.10 are green on every Linux preset here; M1 closes when CI on the final M1 commit is green on all jobs.
+- **Status:** **done (2026-10-18).** All steps green in CI on Windows and Linux (owner-confirmed; the owner moved on to M2).
 - **Plan:** [M1-plan.md](M1-plan.md) · **PRD:** [PRD_spsc_ring.md](../PRD_spsc_ring.md) · **Ordering proof:** [memory-ordering.md](../memory-ordering.md)
 
 ## Summary
