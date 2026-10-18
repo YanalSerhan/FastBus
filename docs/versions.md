@@ -30,9 +30,10 @@ Every versioned artifact has a version field that is validated on load.
 |---|---|
 | CMake | 3.28.3 (minimum supported 3.24) |
 | GCC | 13.3.0 |
-| Clang / clang-tidy / clang-format | 18.1.3 |
+| Clang | 18.1.3 |
 | gcovr | 8.6 (pinned in `uv.lock`) |
 | clang-format | 18.1.8 (pinned in `uv.lock`, PyPI wheel — same binary on Windows and Linux) |
+| clang-tidy | 19.1.0 on Linux (pinned in `uv.lock`, PyPI wheel); 19.1.5 on Windows (bundled with VS 2022 17.14). Same check set (KI-008). |
 | uv | 0.11.x (`pyproject.toml` / `uv.lock`; Python 3.13 via `.python-version`) |
 | MSVC | VS 2022 (to be recorded from the first Windows CI run) |
 

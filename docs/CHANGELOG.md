@@ -19,6 +19,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning: [S
 
 ### Fixed
 - `fastbus_add_test` silently dropped extra labels; one label per binary is now enforced (BL-008).
+- clang-tidy's header filter matched only `/` paths, so Windows never checked our headers (BL-009); Linux CI now runs clang-tidy 19.1.0 pinned through uv, the same check set as Windows (KI-008).
 
 ### Added (M2)
 - M2.0 docs: `milestones/M2-plan.md`, `PRD_shm_transport.md`, `PRD_mpsc_queue.md`, ADR-002/003/004/005 (proposed), shared-memory lifetime semantics (KI-010).
