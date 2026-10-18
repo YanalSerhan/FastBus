@@ -6,6 +6,7 @@
 # for both backends lives in common/. Errors use the dependency-free vocabulary (ADR-002).
 fastbus_add_library(platform
     SOURCES
+        common/crc32c.cpp
         common/process_common.cpp
         common/shared_memory_common.cpp
         ${FASTBUS_PLATFORM_SOURCE_DIR}/process.cpp
