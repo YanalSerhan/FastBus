@@ -1,6 +1,6 @@
 # `transport` module
 
-**Status:** placeholder — implemented in M2 (shared memory), M6 (UDP).
+**Status:** M2.3 — shared-memory segments (`segment.hpp`). Loans in M2.7; UDP in M6.
 
 **Responsibility.** Moves messages between endpoints: shared-memory segments with loans (zero-copy), UDP with fragmentation and reliability. Implements the internal `Transport` concept (ADR-008).
 

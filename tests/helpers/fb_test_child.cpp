@@ -10,6 +10,8 @@
 //   shm-identity <name> <sleep-ms>    write this process's ProcessIdentity at offset 0, sleep
 //   shm-args <name> [args...]         write the received args (u32 count, then u32 length +
 //                                     bytes each) at offset 0, so the parent can check quoting
+//   segment-create <name> <payload>   create a transport::Segment, mark it ready, then hang
+//   segment-stall <name> <payload>    create a Segment but never mark it ready, then hang
 //
 // Exit codes: 0 ok, 2 usage, 3 check failed, 4 shared-memory error, 124 watchdog fired.
 // The watchdog (default 30 s) guarantees that a forgotten or hung child never hangs CI.
@@ -27,6 +29,7 @@
 #include "fastbus/platform/process.hpp"
 #include "fastbus/platform/shared_memory.hpp"
 #include "fastbus/platform/time_source.hpp"
+#include "fastbus/transport/segment.hpp"
 
 namespace {
 
@@ -108,6 +111,24 @@ int shm_args(std::span<const std::string_view> a) {
     return ok ? 0 : kShmError;
 }
 
+int segment(std::span<const std::string_view> a, bool ready) {
+    std::int64_t payload = 0;
+    if (a.size() != 2 || !parse(a[1], payload) || payload <= 0) {
+        return kUsage;
+    }
+    auto seg = fastbus::transport::Segment::create(a[0], static_cast<std::size_t>(payload),
+                                                   fastbus::transport::segment_kind::kTest);
+    if (!seg) {
+        return kShmError;
+    }
+    if (ready) {
+        seg->mark_ready();
+    }
+    while (true) {  // until killed (or the watchdog fires)
+        sleep_ms(1'000);
+    }
+}
+
 int run(std::span<const std::string_view> args) {
     if (args.empty()) {
         return kUsage;
@@ -138,6 +159,12 @@ int run(std::span<const std::string_view> args) {
     }
     if (role == "shm-args") {
         return shm_args(rest);
+    }
+    if (role == "segment-create") {
+        return segment(rest, true);
+    }
+    if (role == "segment-stall") {
+        return segment(rest, false);
     }
     return kUsage;
 }

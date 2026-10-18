@@ -1,2 +1,8 @@
-# fastbus::transport — placeholder, implemented in M2 (shared memory), M6 (UDP).
-# Create the target with fastbus_add_library(transport SOURCES ... PUBLIC_DEPS ...) once sources exist.
+# fastbus::transport — shared-memory segments and loans (M2), UDP + reliability (M6).
+fastbus_add_library(transport
+    SOURCES
+        segment.cpp
+        segment_validate.cpp
+    PUBLIC_DEPS
+        fastbus::core
+        fastbus::platform)
