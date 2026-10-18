@@ -1,5 +1,6 @@
 # Test tree. Labels let presets/CI select subsets:
-#   unit, integration, stress, chaos, golden, canary
+#   unit, integration, stress, chaos, golden, canary, alloc
+add_subdirectory(helpers)  # first: defines fastbus_use_test_child()
 add_subdirectory(unit)
 add_subdirectory(stress)
 # Allocation tests replace the global operator new/delete. TSan's runtime defines them too

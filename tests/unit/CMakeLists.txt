@@ -34,3 +34,13 @@ fastbus_add_test(fastbus_unit_spsc_ring
     DEPS fastbus::core
     LABELS unit
     TIMEOUT 120)
+
+# M2.1/M2.2: shared memory and processes, including real child processes (fb_test_child).
+fastbus_add_test(fastbus_unit_ipc
+    SOURCES
+        process_test.cpp
+        shared_memory_test.cpp
+    DEPS fastbus::platform
+    LABELS unit
+    TIMEOUT 120)
+fastbus_use_test_child(fastbus_unit_ipc)
