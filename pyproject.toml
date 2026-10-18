@@ -20,6 +20,7 @@ dependencies = []
 [dependency-groups]
 dev = [
     "clang-format==18.1.8",  # must match the version CI formats with (docs/known-issues.md KI-002)
+    "clang-tidy==19.1.0",    # same checks as the clang-tidy 19 bundled with VS 2022 (KI-008)
     "gcovr==8.6",            # coverage report (linux-coverage preset)
     "pre-commit>=4",         # optional git hooks (.pre-commit-config.yaml)
 ]

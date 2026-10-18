@@ -23,10 +23,10 @@ struct VersionInfo {
 
 /// Version this header was generated for.
 inline constexpr VersionInfo kVersion{
-    @PROJECT_VERSION_MAJOR@U,
-    @PROJECT_VERSION_MINOR@U,
-    @PROJECT_VERSION_PATCH@U,
-    "@PROJECT_VERSION@",
+    .major = @PROJECT_VERSION_MAJOR@U,
+    .minor = @PROJECT_VERSION_MINOR@U,
+    .patch = @PROJECT_VERSION_PATCH@U,
+    .text = "@PROJECT_VERSION@",
 };
 
 /// Returns the compile-time library version. Usable in constant expressions.

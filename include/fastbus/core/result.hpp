@@ -41,7 +41,7 @@ Unexpected(E) -> Unexpected<E>;
 
 /// Shorthand for the common case: `return fail(ErrorCode::X, "static message");`
 [[nodiscard]] constexpr Unexpected<Error> fail(ErrorCode code, const char* message) noexcept {
-    return Unexpected<Error>{Error{code, message}};
+    return Unexpected<Error>{Error{.code = code, .message = message}};
 }
 
 /// Either a `T` or an `E`. Thread-safety: same as `T` / `E`; no internal synchronization.

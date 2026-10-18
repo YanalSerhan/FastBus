@@ -44,7 +44,9 @@ Checks: >
   -cert-err58-cpp,
   -readability-function-cognitive-complexity
 WarningsAsErrors: '*'
-HeaderFilterRegex: '.*/(include|src|tests|benchmarks|tools|examples|modules)/.*'
+# Both separators: Windows clang-tidy reports paths with '\', and a '/'-only regex silently
+# skipped every header there (BL-009).
+HeaderFilterRegex: '.*[/\\](include|src|tests|benchmarks|tools|examples|modules)[/\\].*'
 FormatStyle: file
 CheckOptions:
   - { key: readability-identifier-naming.NamespaceCase,            value: lower_case }

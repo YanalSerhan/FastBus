@@ -38,6 +38,22 @@ wheels = [
 ]
 
 [[package]]
+name = "clang-tidy"
+version = "19.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/a5/1f7c67788f30a8a8d65afbc144034978490a0d0bb61ef2fdd2ca34700b5d/clang_tidy-19.1.0.tar.gz", hash = "sha256:6ae7e3fb47b0969a9ed3197f029165366ee4818437b5ce675426789279b35595", size = 9753, upload-time = "2024-09-19T09:19:56.734Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/4f/9b4326066352c36a9296f8bad6d87874e083bf1673eaff167e5b9c066bd0/clang_tidy-19.1.0-py2.py3-none-macosx_10_9_x86_64.whl", hash = "sha256:61c81df8fbb032888d26ea7145b0a33d0b8539c1923f80084724bc6ee71f6220", size = 27888982, upload-time = "2024-09-19T09:19:26.104Z" },
+    { url = "https://files.pythonhosted.org/packages/03/0b/3d85e0b71e07e632291c0655cd2965361e2376721d8f0ee396db61c75454/clang_tidy-19.1.0-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:c7403c57db174bc17f94fec651a4c6c0bb050da74dc12e542be44edea8a77546", size = 26730679, upload-time = "2024-09-19T09:19:29.563Z" },
+    { url = "https://files.pythonhosted.org/packages/78/91/622295ccb082db63124f3d0ac0dca403b730cad150022f9e44d4886c9cdd/clang_tidy-19.1.0-py2.py3-none-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:79050ed7771520cf9825786f5207dc55ba7b281fff96aca037c0962b104de6ba", size = 43112299, upload-time = "2024-09-19T09:19:33.341Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/8f/479c82737d3139035fd14ca20638371e0297322404a04d42ff35ad83575c/clang_tidy-19.1.0-py2.py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:be843086d18f7c794fe43d9f3378c0c556fd09151a2375ed1943ff703c144970", size = 37694702, upload-time = "2024-09-19T09:19:37.167Z" },
+    { url = "https://files.pythonhosted.org/packages/88/59/98cd6415c8824077f297123bb47990b8d39d95354c17acc87c3cefe4d0aa/clang_tidy-19.1.0-py2.py3-none-musllinux_1_2_i686.whl", hash = "sha256:8441c66560a25e37bb57e3b8d63ac4067f9b6f92c4887f2952d26ed9e49143a0", size = 45476563, upload-time = "2024-09-19T09:19:41.362Z" },
+    { url = "https://files.pythonhosted.org/packages/21/9c/e3b4b92daf52dc1d7ce354c525308fcf9bcd7a2f8ce21822a816e4040f92/clang_tidy-19.1.0-py2.py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:ee2fe7afb34529dd6be9b8f367eaa864814c47e91479d34e3caedd56df80549b", size = 40761782, upload-time = "2024-09-19T09:19:46.09Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/e6/8a692b91d520d90838a1477779b652cadea6f766409a5c3b5e181612b750/clang_tidy-19.1.0-py2.py3-none-win32.whl", hash = "sha256:082f520652a5268c4c97d94c1ff04686e31c9a76c29077beead491f6c345ab94", size = 20053454, upload-time = "2024-09-19T09:19:50.144Z" },
+    { url = "https://files.pythonhosted.org/packages/b9/9b/c9c14196d631a086386e153166e0c295bc1d690f5510078b2c528144ca51/clang_tidy-19.1.0-py2.py3-none-win_amd64.whl", hash = "sha256:27104b3f7a6841d45ece284ba27f93ac7c982a5bf38a30fc6f280c4f0cd2fcfb", size = 23135358, upload-time = "2024-09-19T09:19:54.69Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -75,6 +91,7 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "clang-format" },
+    { name = "clang-tidy" },
     { name = "gcovr" },
     { name = "pre-commit", version = "4.6.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pre-commit", version = "4.7.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -85,6 +102,7 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "clang-format", specifier = "==18.1.8" },
+    { name = "clang-tidy", specifier = "==19.1.0" },
     { name = "gcovr", specifier = "==8.6" },
     { name = "pre-commit", specifier = ">=4" },
 ]

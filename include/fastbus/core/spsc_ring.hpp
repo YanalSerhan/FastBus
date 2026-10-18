@@ -52,7 +52,7 @@ private:
     };
     using Memory = std::unique_ptr<std::byte, AlignedDelete>;
 
-    SpscRing(View view, Memory memory) noexcept : View(view), memory_(std::move(memory)) {}
+    SpscRing(const View& view, Memory memory) noexcept : View(view), memory_(std::move(memory)) {}
 
     Memory memory_;
 };

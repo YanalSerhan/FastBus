@@ -175,14 +175,20 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: sudo apt-get update && sudo apt-get install -y ninja-build clang-tidy-18
-      - run: clang-tidy-18 --version
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          cache-suffix: ${{ github.job }}-${{ strategy.job-index }}   # one key per job, no save races
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build
+      - run: uv sync --frozen   # clang-tidy 19 pinned in uv.lock: the same checks as Windows (KI-008)
+      - run: uv run --frozen clang-tidy --version
       - name: Cache FetchContent sources
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/linux-tidy/_deps
           key: deps-linux-tidy-${{ hashFiles('cmake/Dependencies.cmake') }}
-      - run: cmake --preset linux-tidy -DFASTBUS_CLANG_TIDY=/usr/bin/clang-tidy-18
+      - run: cmake --preset linux-tidy -DFASTBUS_CLANG_TIDY="$(uv run --frozen which clang-tidy)"
       - name: Build with clang-tidy (warnings are errors)
         run: cmake --build --preset linux-tidy --parallel
 
