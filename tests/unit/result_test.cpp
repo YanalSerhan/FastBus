@@ -94,7 +94,8 @@ TEST(Error, EveryCodeHasAName) {
     for (const auto code :
          {ErrorCode::InvalidArgument, ErrorCode::InvalidCapacity, ErrorCode::BufferTooSmall,
           ErrorCode::Misaligned, ErrorCode::OutOfMemory, ErrorCode::NotSupported,
-          ErrorCode::SystemError}) {
+          ErrorCode::SystemError, ErrorCode::AlreadyExists, ErrorCode::NotFound,
+          ErrorCode::PermissionDenied, ErrorCode::Timeout}) {
         EXPECT_FALSE(to_string(code).empty());
         EXPECT_NE(to_string(code), "unknown error");
     }

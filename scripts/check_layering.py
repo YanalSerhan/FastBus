@@ -7,6 +7,9 @@ Rules (docs/PLAN.md):
   * examples/ and modules/ekf may use only the public API (api + idl).
 `fastbus/version.hpp` (generated) is allowed everywhere.
 
+ADR-002 exception: platform may include the dependency-free vocabulary headers
+`fastbus/core/{result,error,assert}.hpp` (library `fastbus::vocabulary`) and nothing else from core.
+
 Also enforces ADR-007: OS/std clocks (`steady_clock`, `system_clock`, `high_resolution_clock`)
 may only be used in src/platform/ and benchmarks/; everything else takes a `core::Clock&`.
 Exit code 1 on any violation.
@@ -19,7 +22,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-INCLUDE_RE = re.compile(r'^\s*#\s*include\s*"fastbus/([a-z_]+)/', re.MULTILINE)
+INCLUDE_RE = re.compile(r'^\s*#\s*include\s*"fastbus/([a-z_]+)/([A-Za-z0-9_./]+)"', re.MULTILINE)
+VOCABULARY = {"result.hpp", "error.hpp", "assert.hpp"}  # fastbus/core/<these>, ADR-002
 EXTENSIONS = {".hpp", ".cpp", ".h", ".ipp"}
 BANNED_CLOCK_RE = re.compile(r"\b(steady_clock|system_clock|high_resolution_clock)\b")
 CLOCK_ALLOWED_PREFIXES = ("src/platform/", "benchmarks/")
@@ -87,7 +91,9 @@ def main() -> int:
                 continue
             name, allowed = owner
             checked += 1
-            for module in INCLUDE_RE.findall(path.read_text(encoding="utf-8")):
+            for module, header in INCLUDE_RE.findall(path.read_text(encoding="utf-8")):
+                if name == "platform" and module == "core" and header in VOCABULARY:
+                    continue
                 if module not in allowed:
                     violations += 1
                     print(f"error: {rel.as_posix()}: '{name}' must not include fastbus/{module}/")

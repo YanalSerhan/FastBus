@@ -18,6 +18,10 @@ enum class ErrorCode : std::uint16_t {  // NOLINT(performance-enum-size): fixed 
     OutOfMemory = 5,                    ///< an allocation at setup time failed
     NotSupported = 6,                   ///< the operation is not available on this platform/build
     SystemError = 7,                    ///< an OS call failed (details in Error::message)
+    AlreadyExists = 8,                  ///< a named object (segment, ...) exists already
+    NotFound = 9,                       ///< a named object or file does not exist
+    PermissionDenied = 10,              ///< the OS refused access
+    Timeout = 11,                       ///< the operation did not finish within its deadline
 };
 
 /// Short, static, human-readable name of a code (e.g. "invalid capacity"). Never null.
