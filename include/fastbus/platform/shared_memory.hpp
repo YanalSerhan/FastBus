@@ -1,12 +1,12 @@
 /// @file shared_memory.hpp
 /// @brief Named shared memory, RAII (M2.1, PRD_shm_transport.md section 3).
 ///
-/// | Operation | Windows                                   | POSIX (Linux) |
-/// |-----------|-------------------------------------------|----------------------------------------|
-/// | create    | CreateFileMappingW(Local\fastbus_<name>)  | shm_open("/fastbus_<name>", O_EXCL) +
-/// ftruncate | | open      | OpenFileMappingW                          | shm_open(O_RDWR) + fstat |
-/// | map       | MapViewOfFile (64 KiB aligned)            | mmap(MAP_SHARED) (page aligned) | |
-/// remove    | NotSupported (dies with its last handle)  | shm_unlink                             |
+/// | Operation | Windows                                 | POSIX (Linux)                       |
+/// |-----------|-----------------------------------------|-------------------------------------|
+/// | create    | CreateFileMappingW(Local\fastbus_<name>) | shm_open(O_EXCL) + posix_fallocate  |
+/// | open      | OpenFileMappingW                        | shm_open(O_RDWR) + fstat            |
+/// | map       | MapViewOfFile (64 KiB aligned)          | mmap(MAP_SHARED) (page aligned)     |
+/// | remove    | NotSupported (dies with its last handle) | shm_unlink                          |
 ///
 /// Lifetime ("creator owns lifetime", PRD section 3.1): the creator's destructor unmaps and, on
 /// POSIX, unlinks the name. Openers keep a valid mapping until they close it. Stale segments
@@ -74,8 +74,9 @@ private:
 
 namespace detail {
 /// Writes `prefix + name` (NUL-terminated) into `out` and returns its length, or 0 if `name` is
-/// invalid or `out` is too small. Shared by both backends (src/platform/common/shm_name.cpp);
-/// each backend passes its prefix ("/fastbus_" on POSIX, "Local\\fastbus_" on Windows).
+/// invalid or `out` is too small. Shared by both backends
+/// (src/platform/common/shared_memory_common.cpp); each backend passes its prefix ("/fastbus_" on
+/// POSIX, "Local\\fastbus_" on Windows).
 [[nodiscard]] std::size_t shm_os_name(std::string_view prefix, std::string_view name,
                                       std::span<char> out) noexcept;
 }  // namespace detail

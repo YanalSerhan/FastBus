@@ -22,6 +22,9 @@ enum class ErrorCode : std::uint16_t {  // NOLINT(performance-enum-size): fixed 
     NotFound = 9,                       ///< a named object or file does not exist
     PermissionDenied = 10,              ///< the OS refused access
     Timeout = 11,                       ///< the operation did not finish within its deadline
+    PoolExhausted = 12,                 ///< no free block/slot right now (never blocks)
+    Corrupted = 13,                     ///< shared memory / file / packet failed validation
+    VersionMismatch = 14,               ///< a format or layout version this build cannot read
 };
 
 /// Short, static, human-readable name of a code (e.g. "invalid capacity"). Never null.

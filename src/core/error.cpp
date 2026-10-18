@@ -26,6 +26,12 @@ std::string_view to_string(ErrorCode code) noexcept {
             return "permission denied";
         case ErrorCode::Timeout:
             return "timeout";
+        case ErrorCode::PoolExhausted:
+            return "pool exhausted";
+        case ErrorCode::Corrupted:
+            return "corrupted data";
+        case ErrorCode::VersionMismatch:
+            return "version mismatch";
     }
     return "unknown error";  // a value outside the enum (e.g. read from corrupted memory)
 }

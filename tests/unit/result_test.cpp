@@ -95,7 +95,8 @@ TEST(Error, EveryCodeHasAName) {
          {ErrorCode::InvalidArgument, ErrorCode::InvalidCapacity, ErrorCode::BufferTooSmall,
           ErrorCode::Misaligned, ErrorCode::OutOfMemory, ErrorCode::NotSupported,
           ErrorCode::SystemError, ErrorCode::AlreadyExists, ErrorCode::NotFound,
-          ErrorCode::PermissionDenied, ErrorCode::Timeout}) {
+          ErrorCode::PermissionDenied, ErrorCode::Timeout, ErrorCode::PoolExhausted,
+          ErrorCode::Corrupted, ErrorCode::VersionMismatch}) {
         EXPECT_FALSE(to_string(code).empty());
         EXPECT_NE(to_string(code), "unknown error");
     }
