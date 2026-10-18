@@ -11,7 +11,10 @@ fastbus_add_library(vocabulary
 fastbus_add_library(core
     SOURCES
         build_info.cpp
+        message_header.cpp
         sleep.cpp
+        slab.cpp
+        slab_setup.cpp
     PUBLIC_DEPS
         fastbus::platform
         fastbus::vocabulary)

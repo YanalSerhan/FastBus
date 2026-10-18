@@ -16,3 +16,13 @@ target_compile_definitions(fastbus_stress_spsc_ring PRIVATE
 if(FASTBUS_ACTIVE_SANITIZERS OR FASTBUS_COVERAGE)
     target_compile_definitions(fastbus_stress_spsc_ring PRIVATE FASTBUS_STRESS_REDUCED=1)
 endif()
+
+# M2.5: slab refcounts with 1 publisher + 4 subscriber threads over an 8-block pool.
+fastbus_add_test(fastbus_stress_slab
+    SOURCES slab_refcount_stress_test.cpp
+    DEPS fastbus::core
+    LABELS stress
+    TIMEOUT 120)
+if(FASTBUS_ACTIVE_SANITIZERS OR FASTBUS_COVERAGE)
+    target_compile_definitions(fastbus_stress_slab PRIVATE FASTBUS_STRESS_REDUCED=1)
+endif()
