@@ -1,6 +1,6 @@
 # PRD — Shared-memory transport
 
-> **Status: proposed (2026-10-18), awaiting owner approval.** Sections 3–5 (platform shared memory and processes) are what M2.1/M2.2 implement; sections 6–9 (segment, slab, loans) are implemented from M2.3 and must be approved before then. Design choices are in [ADR-002](adr/ADR-002-platform-abstraction.md), [ADR-003](adr/ADR-003-fanout-zero-copy.md), [ADR-004](adr/ADR-004-wire-shm-layout.md), [ADR-005](adr/ADR-005-checksum.md).
+> **Status: approved (2026-10-18; the owner delegated the open questions to the proposed answers).** Sections 3–5: M2.1/M2.2. Section 6: M2.3. Section 6a: M2.4. Section 7: M2.5. Sections 8–9: M2.7/M2.8. Design choices are in [ADR-002](adr/ADR-002-platform-abstraction.md), [ADR-003](adr/ADR-003-fanout-zero-copy.md), [ADR-004](adr/ADR-004-wire-shm-layout.md), [ADR-005](adr/ADR-005-checksum.md).
 
 ## 1. Purpose
 
@@ -90,17 +90,64 @@ public:
 | Output data | a mapped, page-aligned byte range | exit code, liveness |
 | Setup data | none (no files, no environment) | none |
 
-## 6. Segment (M2.3)
+## 6. Segment (M2.3): `transport::Segment`
 
-One segment per publisher and topic: `SegmentHeader` {magic, layout_version, total_size, creator `ProcessIdentity`, state `initializing → ready → closing`, epoch}, then the subscriber table, then per-subscriber rings, then the slab (§7). All in-segment references are `OffsetPtr<T>` (offsets from the segment base, ADR-004). The creator fills everything, then `state.store(ready, release)`. Openers `acquire`-load the state and wait with a timeout.
+A segment is a `SharedMemory` whose first 128 bytes are a `SegmentHeader` (ADR-004 rules: fixed-width fields, zeroed reserved bytes, `static_assert`ed offsets):
 
-## 7. Fan-out (ADR-003): descriptor rings + shared slab + refcounts
+| Offset | Field | Meaning |
+|---|---|---|
+| 0 | `u64 magic` | `"FBSEGMNT"`; anything else → `Corrupted` |
+| 8 | `u16 layout_version`, `u16 header_size`, `u32 kind` | version 1; 128; topic = 1, test = 0xFFFF |
+| 16 | `u64 total_size` | exact bytes in use (≤ mapping size) |
+| 24 | `u64 payload_offset`, `u64 payload_size` | where the kind-specific content lives |
+| 40 | `ProcessIdentity creator` | pid + start time (stale detection) |
+| 56 | `u64 epoch` | wall-clock ns at creation; distinguishes two lives of one name |
+| 64 | `atomic<u32> state` | `initializing (0) → ready (1) → closing (2)` |
+| 68–127 | reserved | zero |
 
-- **Slab:** fixed-size blocks, each a 64-byte `MessageHeader` (M2.4) plus payload. The publisher is the only allocator.
-- **Per subscriber:** an SPSC *descriptor ring* from publisher to subscriber (block index + generation + sequence), and an SPSC *return ring* from subscriber to publisher.
-- **Publish:** set `refcount = number of live subscribers`, then push a descriptor into each subscriber ring. If a ring is full, that subscriber's reference is dropped immediately and counted (T4).
-- **Release:** a subscriber decrements the refcount. The one that brings it to 0 pushes the block index into its return ring. The publisher drains the return rings on the next `loan()`. There is no shared free list and no CAS loop, so there is no ABA.
-- **Generation:** bumped on every reuse, so a stale descriptor is detected and ignored.
+- **Create:** map, fill every field while `state == initializing` (memory starts zeroed), then `state.store(ready, release)`. A reader that `acquire`-loads `ready` sees every field (and every byte of payload set up before it).
+- **Open:** map, then validate everything a reader will rely on *before* using it: magic, version, header size, `total_size ≤ mapping size`, `payload_offset + payload_size ≤ total_size`, alignment. Then wait (polling, with a timeout) for `ready`. `closing` → `NotFound`. Shared memory is untrusted: a failed check is an error, never a crash (T6).
+- **Stale creator:** `create` on an existing name opens it and checks `is_alive(header.creator)`. Dead → the segment is stale: removed and created again (POSIX). Alive → `AlreadyExists`. On Windows a stale name can only exist while another process still holds a handle; it cannot be removed, so `create` reports `AlreadyExists` with a "stale, still mapped elsewhere" message. `open` refuses a segment whose creator is dead (`NotFound`).
+- **Destroy (creator):** `state.store(closing, release)` first, then unmap/unlink. Openers that see `closing` treat the segment as gone (this is what makes Windows behave like POSIX, §3.1).
+- `OffsetPtr<T>` (core): an offset from the segment base, resolved only through a bounds- and alignment-checked function that returns `nullptr` on any violation.
+
+## 6a. Message header (M2.4): `core::MessageHeader`
+
+64 bytes, `alignas(64)`, first in every slab block's payload, on the wire (M6) and in logs (M5):
+
+| Offset | Field | Notes |
+|---|---|---|
+| 0 | `u32 magic` `"FBMS"` · `u16 header_version` (1) · `u16 schema_version` | |
+| 8 | `u64 type_id` | FNV-1a 64 of the fully qualified type name (`constexpr`) |
+| 16 | `u64 sequence` · 24 `i64 timestamp_ns` | assigned at publish |
+| 32 | `u32 payload_size` · 36 `u32 checksum` | CRC32C, valid only with the `checksummed` flag |
+| 40 | `u16 flags` (`replayed` = 1, `checksummed` = 2) | other bits must be zero |
+| 42–63 | reserved | always zeroed by `make_header` |
+
+Checksum (ADR-005): CRC32C over the 64 header bytes **with `checksum` set to 0**, continued over the payload. Hardware CRC32C (SSE4.2 / ARMv8 CRC) when available, software slice-by-8 otherwise; both give identical results (tested). Validation (`validate(header, bytes_available)`): magic, version, unknown flag bits, `payload_size ≤ bytes_available − 64`.
+
+## 7. Slab (M2.5): `core::SlabView` — descriptor rings + refcounts (ADR-003)
+
+A view over caller memory (the segment payload in M2.7) with no pointers inside:
+
+```
+[ SlabHeader 64 B | free stack u32[block_count] (publisher only) | block 0 | block 1 | ... ]
+block = [ BlockHeader 64 B: atomic<u64> state = (generation << 32) | refcount | payload ]
+```
+
+- **The publisher is the only allocator.** `allocate()` pops the free stack (no CAS, no ABA) and returns a `BlockHandle {index, generation}`; empty → `PoolExhausted` (never blocks).
+- `share(handle, n)` sets `refcount = n` (n = live subscribers) before the descriptors are pushed; `free(handle)` returns an unpublished block (a loan dropped without publish).
+- **Release (any process):** a CAS loop on the packed 64-bit state that succeeds only if the generation matches *and* refcount > 0. Generation and refcount are checked in the **same** atomic operation, so a stale or duplicated descriptor can never decrement a block that has since been reused (the race a separate generation check would have). Results: `Stale`, `Remaining`, or `Last`.
+- **Return path:** the subscriber that gets `Last` pushes the block index into its own SPSC return ring (MPSC option B); the publisher drains return rings and calls `reclaim(index)`, which bumps the generation and pushes the index back on the free stack.
+- Memory ordering (full argument in `memory-ordering.md` §13): each subscriber's reads of the payload happen-before its release CAS (`acq_rel`); the CASes on one block form a release sequence, so the `Last` releaser's acquire synchronizes with all of them; its return-ring push (`release`) → publisher pop (`acquire`) → reuse. The publisher's payload writes reach subscribers through the descriptor ring's release/acquire (M1 proof).
+- **Block states** (low 32 bits of `state`; the generation is bumped on every return to `FREE`):
+
+  ```
+  FREE --allocate--> LOANED --share(n)--> SHARED(n..1) --last release--> RETURNED --reclaim--> FREE
+  LOANED --free (loan dropped without publish)--> FREE
+  ```
+  Every transition checks the state it starts from. So a corrupted return ring or a buggy peer cannot double-free (`reclaim` of a `FREE` block is rejected) or steal a loan (`reclaim` of a `LOANED` block is rejected). Either case would otherwise hand one block to two owners.
+- Block size: `BlockHeader` + payload capacity rounded up to 64 bytes (ADR-009), so refcounts of neighbouring blocks never share a cache line with each other's payload start.
 
 ## 8. Loans (M2.7)
 
@@ -126,8 +173,15 @@ Network transport (M6), cross-machine use, encryption, persistence beyond the cr
 
 M2.1/M2.2 unit tests (`tests/unit/shared_memory_test.cpp`, `process_test.cpp`) including real cross-process checks through `fb_test_child`; M2.8 cross-process integration suite (ping-pong, 1e6 messages, zero-copy proof, crash and stale tests, corrupted-segment fuzz, late joiner, MPSC with 3 producer processes) on Windows and Linux CI.
 
-## 13. Open questions for the owner
+## 13. Decisions (were open questions)
+
+All four were decided on 2026-10-18 by delegation to the proposed answers: creator owns lifetime; the `vocabulary` layer; ADR-003/004/005 accepted; MPSC option (B).
+
+<details><summary>Original questions</summary>
+
 
 1. Approve "creator owns lifetime" with explicit stale cleanup (§3.1)? [proposed: yes]
 2. Approve the `vocabulary` exception to the layering (platform may use `Result`/`Error`/`fail_fast`, ADR-002)? [proposed: yes]
 3. Approve ADR-003 (descriptor rings + slab + refcount, per Q2), ADR-004 (layout rules) and ADR-005 (CRC32C) before M2.3? [proposed: yes]
+
+</details>

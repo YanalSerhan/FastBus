@@ -1,6 +1,6 @@
 # ADR-004: Wire / shared-memory layout rules
 
-- **Status:** proposed (2026-10-18), awaiting owner approval before M2.3
+- **Status:** accepted (2026-10-18; owner delegated the decision to the proposed option)
 - **Date:** 2026-10-18
 - **Deciders:** Yanal Serhan
 

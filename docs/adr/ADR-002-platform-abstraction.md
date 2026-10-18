@@ -1,6 +1,6 @@
 # ADR-002: Platform abstraction by build-time source selection
 
-- **Status:** proposed (2026-10-18), implemented provisionally for M2.1/M2.2; awaiting owner approval
+- **Status:** accepted (2026-10-18; owner delegated the decision to the proposed option)
 - **Date:** 2026-10-18
 - **Deciders:** Yanal Serhan
 

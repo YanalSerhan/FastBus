@@ -1,6 +1,6 @@
 # PRD — MPSC queue
 
-> **Status: proposed (2026-10-18), awaiting owner approval.** Implemented in M2.6. The design decision is recorded as a new ADR at M2.6; this PRD states the options and the proposed choice so it can be reviewed now.
+> **Status: approved (2026-10-18): option (B), per-producer SPSC rings (owner delegated the decision).** Implemented in M2.6, where the decision is also recorded as ADR-012.
 
 ## 1. Purpose
 

@@ -249,3 +249,36 @@ sequenceDiagram
 - [x] The slot is written strictly before [P3] and read strictly before [C3].
 - [x] `cached_head` / `cached_tail` are only refreshed by [P2] / [C2].
 - [x] No `std::atomic_thread_fence`, no `seq_cst`, no `compare_exchange` in the ring (the only CAS is the debug-only `ThreadOwner`).
+
+---
+
+## 13. Slab reference counts (M2.5)
+
+Scope: `core::SlabView` (PRD_shm_transport §7). One publisher (the only allocator), N subscribers, all possibly in different processes. Each block has one atomic word `state = (generation << 32) | refcount`.
+
+| Tag | Thread | Operation | Order | Why |
+|---|---|---|---|---|
+| **S1** | publisher | `allocate`: read `state` of the popped block | `relaxed` | refcount is 0 and nobody else may touch a free block; the free stack is publisher-only memory |
+| **S2** | publisher | `share`: `state.store(gen << 32 \| n)` | `relaxed` | ordered before every descriptor push ([P3], `release`), which is what publishes it together with the payload |
+| **S3** | subscriber | `release`: CAS `state` from `(g, r)` to `(g, r − 1)` if `g` matches and `r > 0` | `acq_rel` (failure `relaxed`) | release: the subscriber's payload reads happen-before its decrement. acquire: the subscriber that takes `r` from 1 to 0 synchronizes with every earlier decrement |
+| **S4** | publisher | `reclaim`/`free`: `state.store((g + 1) << 32)` | `relaxed` | the publisher already synchronized with the last releaser through the return ring ([P3]→[C2] of that ring); bumping the generation invalidates stale descriptors |
+
+**Why the last releaser sees every other subscriber's reads.** All CASes on one block's `state` are read-modify-write operations, so they form one *release sequence* headed by each earlier release ([intro.races]; RMWs extend release sequences even after P0982). The subscriber whose CAS takes refcount to 0 performs an acquire, reading the value written by the previous RMW. It therefore synchronizes with every earlier S3, and all the other subscribers' payload reads happen-before it.
+
+**Why the publisher may then overwrite the block.** The last releaser pushes the index into its return ring ([P3], `release`); the publisher pops it ([C2], `acquire`), so all of the above happens-before the publisher's `reclaim` and the next payload write. This is the same write-after-read argument as §5.2, extended by the release sequence.
+
+**Why generation and refcount share one word.** If the generation were checked by a separate load, this interleaving would be possible: subscriber A loads `gen = 5` (matches its descriptor) → the block is released by everyone else, reclaimed (gen 6) and re-published with refcount 3 → A decrements the *new* message's refcount, and a later reader sees the block reused under it. With both in one word, A's CAS fails because the word now holds generation 6, and A gets `Stale`.
+
+**State machine.** The low 32 bits are not only a count: `FREE` = 0xFFFFFFFF, `LOANED` = 0xFFFFFFFE, `SHARED` = 1…0xFFFFFFFD, `RETURNED` = 0 (PRD_shm_transport §7). Only the publisher moves a block out of `FREE`, `LOANED` or `RETURNED` (S1, S2, S4, plain stores: it is the only writer in those states). Subscribers only move `SHARED(r)` → `SHARED(r − 1)` / `RETURNED` with S3.
+
+**Double release.** A buggy subscriber releasing twice either fails the generation check (block already reclaimed) or meets refcount 0 (reported as `Stale`). It never underflows the counter, so it can never free a block that others still read.
+
+## 14. Segment state (M2.3)
+
+| Tag | Thread | Operation | Order | Why |
+|---|---|---|---|---|
+| **G1** | creator | `state.store(ready)` after writing every header field and the initial payload | `release` | publishes the whole initialized segment |
+| **G2** | opener | `state.load()` until `ready` | `acquire` | pairs with G1: every byte the creator wrote before G1 is visible |
+| **G3** | creator | `state.store(closing)` before unmapping | `release` | openers that see `closing` stop using the segment |
+
+Header fields are written once, before G1, and never again, so after G2 they can be read with plain loads. They are still validated (T6), because a broken or malicious creator could have written anything.

@@ -1,6 +1,6 @@
 # M2 — Shared-memory transport (2 processes), message header, loans, MPSC: plan
 
-> **Status: proposed 2026-10-18.** M2.0 docs written; M2.1 (shared memory) and M2.2 (processes) implemented on the platform layer, which does not depend on the open ADR-003/004/005 choices. **Owner approval of [PRD_shm_transport.md](../PRD_shm_transport.md), [PRD_mpsc_queue.md](../PRD_mpsc_queue.md) and ADR-002/003/004/005 is needed before M2.3.**
+> **Status: approved 2026-10-18** (the owner delegated the open decisions to the proposed answers). M2.0–M2.2 done; M2.3–M2.5 implemented, Windows awaiting CI.
 
 ## Scope
 
@@ -42,6 +42,20 @@ include/fastbus/core/      error.hpp          (+ AlreadyExists, NotFound, Permis
 src/core/CMakeLists.txt    fastbus::vocabulary target (ADR-002)
 tests/helpers/             fb_test_child.cpp  (roles via argv, watchdog)
 tests/unit/                shared_memory_test.cpp  process_test.cpp
+```
+
+## Files (M2.3–M2.5)
+
+```
+include/fastbus/transport/  segment.hpp                  (SegmentHeader, Segment, validate_segment)
+src/transport/              segment.cpp  segment_validate.cpp  segment_internal.hpp
+include/fastbus/core/       offset_ptr.hpp  message_header.hpp  slab.hpp
+src/core/                   message_header.cpp  slab.cpp  slab_setup.cpp  slab_internal.hpp
+include/fastbus/platform/   crc32c.hpp
+src/platform/common/        crc32c.cpp                   (software + SSE4.2 / ARMv8 dispatch)
+tests/unit/                 segment_test.cpp  offset_ptr_test.cpp  crc32c_test.cpp
+                            message_header_test.cpp  slab_test.cpp
+tests/stress/               slab_refcount_stress_test.cpp
 ```
 
 ## Risks

@@ -1,6 +1,6 @@
 # ADR-003: Fan-out / zero-copy design
 
-- **Status:** proposed (2026-10-18), awaiting owner approval before M2.5/M2.7 (G0 answer to Q2 was option (a))
+- **Status:** accepted (2026-10-18; owner delegated the decision to the proposed option); matches the G0 answer to Q2
 - **Date:** 2026-10-18
 - **Deciders:** Yanal Serhan
 

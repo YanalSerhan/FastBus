@@ -1,6 +1,6 @@
 # ADR-005: Checksum algorithm and policy
 
-- **Status:** proposed (2026-10-18), awaiting owner approval before M2.4
+- **Status:** accepted (2026-10-18; owner delegated the decision to the proposed option)
 - **Date:** 2026-10-18
 - **Deciders:** Yanal Serhan
 
